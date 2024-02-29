@@ -20,6 +20,7 @@ typedef struct s_particle {
 typedef struct s_state {
 	int read = 0;
 	int write = 1;
+	float born_parts = 0;
 }				t_state;
 
 class Display
@@ -28,6 +29,7 @@ class Display
 		GLFWwindow *_window;
 		GLuint _vaos[4], _vbos[2], _shaderUpdateProgram, _shaderRenderProgram;
 		GLint _uniDeltaT, _uniOrigin, _uniMinTheta, _uniMaxTheta, _uniMinSpeed, _uniMaxSpeed;
+		GLint _winWidth, _winHeight;
 		GLuint _texture;
 		std::array<float, 2> _origin;
 		t_state _state;
@@ -44,6 +46,8 @@ class Display
 	public:
 		Display( void );
 		~Display( void );
+
+		void setWindowSize( int width, int height );
 
 		void start( void );
 };

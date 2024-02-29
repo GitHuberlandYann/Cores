@@ -37,13 +37,13 @@ namespace Random {
 	/*
 	 * @brief generate 2D texture of noise
 	 */
-	std::vector<std::array<int, 2>> randomRGData( int sizeX, int sizeY )
+	std::vector<std::array<char, 2>> randomRGData( int sizeX, int sizeY )
 	{
 		unsigned seed = 123456;
-		std::vector<std::array<int, 2>> res;
+		std::vector<std::array<char, 2>> res;
 		res.reserve(sizeX * sizeY);
 		for (int i = 0; i < sizeX * sizeY; ++i) {
-			res.push_back({static_cast<int>(randomFloat(seed) * 255.0f), static_cast<int>(randomFloat(seed) * 255.0f)});
+			res.push_back({static_cast<char>(randomFloat(seed) * 255.0f), static_cast<char>(randomFloat(seed) * 255.0f)});
 		}
 		return (res);
 	}

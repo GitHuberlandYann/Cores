@@ -6,6 +6,6 @@ in float life;
 in vec2 velocity;
 
 void main() {
-  gl_PointSize = 1.0;
+  gl_PointSize = 1.0 - life / age;
   gl_Position = vec4(position, 0.0, 1.0);
 }

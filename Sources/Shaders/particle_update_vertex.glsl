@@ -21,9 +21,9 @@ out vec2 Velocity;
 
 void main() {
 	if (age >= life) {
-		ivec2 noise_coord = ivec2(gl_VertexID % 512, gl_VertexID / 512);
+		ivec2 noise_coord = ivec2(gl_VertexID & 0x1FF, gl_VertexID >> 8);
 		vec2 rand = texelFetch(rgNoise, noise_coord, 0).rg;
-		float theta = minTheta + rand.r*(maxTheta - minTheta);
+		float theta = minTheta + rand.r * (maxTheta - minTheta);
 
 		float x = cos(theta);
 		float y = sin(theta);

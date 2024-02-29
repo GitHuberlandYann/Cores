@@ -1,8 +1,9 @@
 #include "Display.hpp"
 #include "random.hpp"
+#include "callbacks.hpp"
 
 Display::Display( void )
-	: _window(NULL), _texture(0), _origin({0, 0})
+	: _window(NULL), _winWidth(WIN_WIDTH), _winHeight(WIN_HEIGHT), _texture(0), _origin({0, 0})
 {
 }
 
@@ -29,13 +30,6 @@ Display::~Display( void )
 // ************************************************************************** //
 //                                Private                                     //
 // ************************************************************************** //
-
-static void error_callback( int error, const char *msg )
-{
-    std::string s;
-    s = " [" + std::to_string(error) + "] " + msg + '\n';
-    std::cerr << s << std::endl;
-}
 
 void Display::setup_window( void )
 {
@@ -189,6 +183,14 @@ void Display::init_particles( int num_parts, float min_age, float max_age ) {
 
 void Display::render( double deltaTime )
 {
+	int num_part = static_cast<int>(_state.born_parts);
+	if (num_part < NUM_PARTS) {
+		_state.born_parts += 100 * deltaTime; // birth rate
+		if (_state.born_parts > NUM_PARTS) {
+			_state.born_parts = NUM_PARTS;
+		}
+	}
+
 	glClear(GL_COLOR_BUFFER_BIT);
 	glUseProgram(_shaderUpdateProgram);
 
@@ -196,8 +198,8 @@ void Display::render( double deltaTime )
 	glUniform2f(_uniOrigin, _origin[0], _origin[1]);
 	glUniform1f(_uniMinTheta, -3.1415f);
 	glUniform1f(_uniMaxTheta, 3.1415f);
-	glUniform1f(_uniMinSpeed, 0.5f);
-	glUniform1f(_uniMaxSpeed, 1.0f);
+	glUniform1f(_uniMinSpeed, 0.2f);
+	glUniform1f(_uniMaxSpeed, 0.6f);
 
 	glBindVertexArray(_vaos[_state.read]);
 	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, _vbos[_state.write]);
@@ -205,7 +207,7 @@ void Display::render( double deltaTime )
 	glEnable(GL_RASTERIZER_DISCARD); // we don't render anything
 
 	glBeginTransformFeedback(GL_POINTS);
-	glDrawArrays(GL_POINTS, 0, NUM_PARTS);
+	glDrawArrays(GL_POINTS, 0, num_part);
 	glEndTransformFeedback();
 
 	glDisable(GL_RASTERIZER_DISCARD);
@@ -216,7 +218,7 @@ void Display::render( double deltaTime )
 	glBindVertexArray(_vaos[_state.read + 2]);
 	// glBindVertexArray(_vaos[_state.write + 2]);
 	glUseProgram(_shaderRenderProgram);
-	glDrawArrays(GL_POINTS, 0, NUM_PARTS);
+	glDrawArrays(GL_POINTS, 0, num_part);
 
 	int tmp = _state.read;
 	_state.read = _state.write;
@@ -232,13 +234,12 @@ void Display::main_loop( void )
 	glfwSwapInterval(1);
 	glClearColor(0, 0, 0, 1.0f);
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-	// set_display_callback(this);
-	// glfwSetWindowSizeCallback(_window, window_size_callback);
-	// glfwSetCursorPosCallback(_window, cursor_position_callback);
+	set_display_callback(this);
+	glfwSetWindowSizeCallback(_window, window_size_callback);
 
 	check_glstate("setup done, entering main loop\n", true);
 
-	double lastTime = glfwGetTime(), previousFrame = lastTime;
+	double lastTime = glfwGetTime(), previousFrame = lastTime - 0.5;
 	int nbFrames = 0, nbFramesLastSecond = 0;
 
 	while (!glfwWindowShouldClose(_window)) {
@@ -247,11 +248,17 @@ void Display::main_loop( void )
 			continue ;
 		}
 
+		if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+			double mouseX, mouseY;
+			glfwGetCursorPos(_window, &mouseX, &mouseY);
+			_origin = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
+		}
+
 		double currentTime = glfwGetTime();
 		double deltaTime = currentTime - previousFrame;
 		++nbFrames;
 		if (currentTime - lastTime >= 1.0) {
-			std::cout << "FPS: " << nbFrames << std::endl;
+			std::cout << "FPS: " << nbFrames << ", " << _state.born_parts << " parts" << std::endl;
 			nbFramesLastSecond = nbFrames;
 			nbFrames = 0;
 			lastTime += 1.0;
@@ -267,6 +274,12 @@ void Display::main_loop( void )
 // ************************************************************************** //
 //                                Public                                      //
 // ************************************************************************** //
+
+void Display::setWindowSize( int width, int height )
+{
+	_winWidth = width;
+	_winHeight = height;
+}
 
 void Display::start( void )
 {
