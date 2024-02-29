@@ -2,7 +2,7 @@ NAME			= cores
 OBJS_DIR		= Objs
 SRCS_DIR		= Sources
 
-FILES			= main Display utils
+FILES			= main Display random utils
 
 SRCS			= $(addprefix $(SRCS_DIR)/, $(addsuffix .cpp, $(FILES)))
 OBJS 			= $(addprefix $(OBJS_DIR)/, $(addsuffix .o, $(FILES)))

@@ -60,25 +60,24 @@ GLuint createShaderProgram( std::string vertex, std::string geometry, std::strin
 		compile_shader(geometryShader, geometry);
 	}
 
-	std::string fragment_shader_data = get_file_content("Sources/Shaders/" + fragment + ".glsl");
-	char *fragmentSource = &fragment_shader_data[0];
+	GLuint fragmentShader;
+	if (fragment[0]) {
+		std::string fragment_shader_data = get_file_content("Sources/Shaders/" + fragment + ".glsl");
+		char *fragmentSource = &fragment_shader_data[0];
 
-	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
-	compile_shader(fragmentShader, fragment);
+		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
+		compile_shader(fragmentShader, fragment);
+	}
 
 	// Combining shaders into a program
 	GLuint shaderProgram = glCreateProgram();
 	glAttachShader(shaderProgram, vertexShader);
-	if (geometry[0]) {
-		glAttachShader(shaderProgram, geometryShader);
-	}
-	glAttachShader(shaderProgram, fragmentShader);
+	if (geometry[0]) glAttachShader(shaderProgram, geometryShader);
+	if (fragment[0]) glAttachShader(shaderProgram, fragmentShader);
 
-	glDeleteShader(fragmentShader);
-	if (geometry[0]) {
-		glDeleteShader(geometryShader);
-	}
+	if (fragment[0]) glDeleteShader(fragmentShader);
+	if (geometry[0]) glDeleteShader(geometryShader);
     glDeleteShader(vertexShader);
 
 	return (shaderProgram);

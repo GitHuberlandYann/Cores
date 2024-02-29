@@ -9,8 +9,10 @@
 # include <string>
 
 enum {
-	SPECATTRIB,
-	POSATTRIB
+	POSATTRIB,
+	AGEATTRIB,
+	LIFEATTRIB,
+	VELATTRIB
 };
 
 std::string get_file_content( std::string file_name );
