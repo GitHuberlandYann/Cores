@@ -107,6 +107,7 @@ void Display::setup_communication_shaders( void )
 {
 	_uniDeltaT = glGetUniformLocation(_shaderUpdateProgram, "deltaTime");
 	_uniOrigin = glGetUniformLocation(_shaderUpdateProgram, "origin");
+	_uniGravity = glGetUniformLocation(_shaderUpdateProgram, "gravity");
 	_uniMinTheta = glGetUniformLocation(_shaderUpdateProgram, "minTheta");
 	_uniMaxTheta = glGetUniformLocation(_shaderUpdateProgram, "maxTheta");
 	_uniMinSpeed = glGetUniformLocation(_shaderUpdateProgram, "minSpeed");
@@ -185,7 +186,7 @@ void Display::render( double deltaTime )
 {
 	int num_part = static_cast<int>(_state.born_parts);
 	if (num_part < NUM_PARTS) {
-		_state.born_parts += 100 * deltaTime; // birth rate
+		_state.born_parts += 1000 * deltaTime; // birth rate
 		if (_state.born_parts > NUM_PARTS) {
 			_state.born_parts = NUM_PARTS;
 		}
@@ -196,6 +197,7 @@ void Display::render( double deltaTime )
 
 	glUniform1f(_uniDeltaT, deltaTime);
 	glUniform2f(_uniOrigin, _origin[0], _origin[1]);
+	glUniform2f(_uniGravity, _gravity_center[0], _gravity_center[1]);
 	glUniform1f(_uniMinTheta, -3.1415f);
 	glUniform1f(_uniMaxTheta, 3.1415f);
 	glUniform1f(_uniMinSpeed, 0.2f);
@@ -252,6 +254,13 @@ void Display::main_loop( void )
 			double mouseX, mouseY;
 			glfwGetCursorPos(_window, &mouseX, &mouseY);
 			_origin = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
+		}
+		if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+			double mouseX, mouseY;
+			glfwGetCursorPos(_window, &mouseX, &mouseY);
+			_gravity_center = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
+		} else {
+			_gravity_center[0] = 1000;
 		}
 
 		double currentTime = glfwGetTime();

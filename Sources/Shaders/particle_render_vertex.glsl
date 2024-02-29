@@ -5,7 +5,13 @@ in float age;
 in float life;
 in vec2 velocity;
 
+out float Percent;
+out vec2 Position;
+
 void main() {
-  gl_PointSize = 1.0 - life / age;
+  Percent = 1 - age / life;
+  Position = position;
+
+  gl_PointSize = 5.0 * Percent;
   gl_Position = vec4(position, 0.0, 1.0);
 }

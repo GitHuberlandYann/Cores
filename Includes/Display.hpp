@@ -28,10 +28,10 @@ class Display
 	private:
 		GLFWwindow *_window;
 		GLuint _vaos[4], _vbos[2], _shaderUpdateProgram, _shaderRenderProgram;
-		GLint _uniDeltaT, _uniOrigin, _uniMinTheta, _uniMaxTheta, _uniMinSpeed, _uniMaxSpeed;
+		GLint _uniDeltaT, _uniOrigin, _uniGravity, _uniMinTheta, _uniMaxTheta, _uniMinSpeed, _uniMaxSpeed;
 		GLint _winWidth, _winHeight;
 		GLuint _texture;
-		std::array<float, 2> _origin;
+		std::array<float, 2> _origin, _gravity_center;
 		t_state _state;
 
 		void setup_window( void );
