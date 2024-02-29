@@ -200,8 +200,10 @@ void Display::render( double deltaTime )
 	glUniform2f(_uniGravity, _gravity_center[0], _gravity_center[1]);
 	glUniform1f(_uniMinTheta, -3.1415f);
 	glUniform1f(_uniMaxTheta, 3.1415f);
-	glUniform1f(_uniMinSpeed, 0.2f);
-	glUniform1f(_uniMaxSpeed, 0.6f);
+	glUniform1f(_uniMinSpeed, 0.05f);
+	glUniform1f(_uniMaxSpeed, 0.1f);
+	// glUniform1f(_uniMinSpeed, 0.2f);
+	// glUniform1f(_uniMaxSpeed, 0.6f);
 
 	glBindVertexArray(_vaos[_state.read]);
 	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, _vbos[_state.write]);
@@ -296,6 +298,7 @@ void Display::start( void )
 	create_shaders();
 	setup_communication_shaders();
 	load_texture();
-	init_particles(NUM_PARTS, 1.01f, 1.15f);
+	// init_particles(NUM_PARTS, 1.01f, 1.15f);
+	init_particles(NUM_PARTS, 5.01f, 10.15f);
 	main_loop();
 }

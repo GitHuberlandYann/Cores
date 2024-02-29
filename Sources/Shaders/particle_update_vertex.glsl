@@ -38,7 +38,9 @@ void main() {
 		Life = life;
 		vec2 f_gravity = vec2(0, 0);
 		if (gravity.x < 999) {
-			f_gravity = normalize(gravity - position) * (2 - distance(position, gravity));
+			// F = G * (Ma * Mb) / d²
+			float dist = max(0.4f, distance(position, gravity)); // 0.2
+			f_gravity = normalize(gravity - position) * 0.7 / (dist * dist);
 		}
 		Velocity = velocity + f_gravity * deltaTime;
 	}
