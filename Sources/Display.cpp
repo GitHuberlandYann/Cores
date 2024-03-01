@@ -3,7 +3,7 @@
 #include "callbacks.hpp"
 
 Display::Display( void )
-	: _window(NULL), _winWidth(WIN_WIDTH), _winHeight(WIN_HEIGHT), _texture(0)
+	: _window(NULL), _winWidth(WIN_WIDTH), _winHeight(WIN_HEIGHT), _texture(0), _current_core(0), _input_released(true)
 {
 }
 
@@ -18,8 +18,10 @@ Display::~Display( void )
 	glDeleteProgram(_shaderUpdateProgram);
 	glDeleteProgram(_shaderRenderProgram);
 
-	glDeleteBuffers(2, _vbos);
-	glDeleteVertexArrays(4, _vaos);
+	for (auto &c : _cores) {
+		glDeleteBuffers(2, c._vbos);
+		glDeleteVertexArrays(2, c._vaos);
+	}
 
 	glfwMakeContextCurrent(NULL);
     glfwTerminate();
@@ -107,6 +109,7 @@ void Display::setup_communication_shaders( void )
 	_uniMaxTheta = glGetUniformLocation(_shaderUpdateProgram, "maxTheta");
 	_uniMinSpeed = glGetUniformLocation(_shaderUpdateProgram, "minSpeed");
 	_uniMaxSpeed = glGetUniformLocation(_shaderUpdateProgram, "maxSpeed");
+	_uniTerminalVelocity = glGetUniformLocation(_shaderUpdateProgram, "terminalVelocity");
 
 	_uniWinPos = glGetUniformLocation(_shaderRenderProgram, "winPos");
 	_uniWinSize = glGetUniformLocation(_shaderRenderProgram, "winSize");
@@ -137,32 +140,36 @@ void Display::load_texture( void )
 	check_glstate("Texture rgNoise done", true);
 }
 
-void Display::init_particles( int num_parts, float min_age, float max_age ) {
+void Display::add_core( void )
+{
+	size_t index = _cores.size();
+	if (index >= 9) {
+		std::cout << "can't add new core, limit of 9 reached." << std::endl;
+		return ;
+	}
+	t_core core;
+	_cores.push_back(core);
+	t_core &c = _cores.back();
 
-	glGenVertexArrays(4, _vaos);
-	glGenBuffers(2, _vbos);
+	c._origin = {static_cast<float>(_winPos[0] + _winWidth / 2), static_cast<float>(_winPos[1] + _winHeight / 2)};
+	c._mass = 5000000;
+	_gravity[index * 3 + 0] = c._origin[0];
+	_gravity[index * 3 + 1] = c._origin[1];
+	_gravity[index * 3 + 2] = c._mass;
+	c._minTheta = -3.1415f;
+	c._maxTheta = 3.1415f;
+	c._minSpeed = 50.0f;
+	c._maxSpeed = 60.0f;
+	c._terminalVelocity = 300.0f;
+
+	glGenVertexArrays(2, c._vaos);
+	glGenBuffers(2, c._vbos);
 	check_glstate("VAOs and VBOs", false);
 
-	unsigned seed = 654321;
-	std::vector<t_particle> vertices;
-	for (int i = 0; i < num_parts; ++i) {
-		float life = min_age + Random::randomFloat(seed) * (max_age - min_age);
-
-		vertices.push_back({{0, 0}, life + 1, life, {0, 0}});
-	}
-	std::cout << "v size " << vertices.size() << ", tpart " << sizeof(t_particle) << std::endl;
-
 	for (int i = 0; i < 2; ++i) {
-		glBindBuffer(GL_ARRAY_BUFFER, _vbos[i]);
-		// glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(int), &(vertices[0]), GL_DYNAMIC_DRAW);
-		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(t_particle), &(vertices[0]), GL_STREAM_DRAW);
-
-		check_glstate("setup vbo " + std::to_string(i), true);
-	}
-
-	for (int i = 0; i < 4; ++i) {
-		glBindVertexArray(_vaos[i]);
-		glBindBuffer(GL_ARRAY_BUFFER, _vbos[i & 0x1]);
+		glBindVertexArray(c._vaos[i]);
+		glBindBuffer(GL_ARRAY_BUFFER, c._vbos[i]);
+		glBufferData(GL_ARRAY_BUFFER, _particles.size() * sizeof(t_particle), &(_particles[0]), GL_STREAM_DRAW);
 
 		glEnableVertexAttribArray(POSATTRIB);
 		glVertexAttribPointer(POSATTRIB, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GL_FLOAT), (void *)(0 * sizeof(GL_FLOAT)));
@@ -175,62 +182,148 @@ void Display::init_particles( int num_parts, float min_age, float max_age ) {
 
 		glEnableVertexAttribArray(VELATTRIB);
 		glVertexAttribPointer(VELATTRIB, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GL_FLOAT), (void *)(4 * sizeof(GL_FLOAT)));
-		
-		check_glstate("setup vao " + std::to_string(i), true);
+			
+		check_glstate("setup vao " + std::to_string(i) + " of core " + std::to_string(index), true);
 	}
+}
+
+void Display::init_cores( int num_parts, float min_age, float max_age )
+{
+	unsigned seed = 654321;
+	_particles.reserve(num_parts);
+	for (int i = 0; i < num_parts; ++i) {
+		float life = min_age + Random::randomFloat(seed) * (max_age - min_age);
+
+		_particles.push_back({{0, 0}, life + 1, life, {0, 0}});
+	}
+
+	glfwGetWindowPos(_window, &_winPos[0], &_winPos[1]);
+
+	int index = 0;
+	for (; index < 1; ++index) {
+		add_core();
+	}
+	for (; index < 9; ++index) {
+		_gravity[index * 3 + 0] = 1000000;
+		_gravity[index * 3 + 1] = 0;
+		_gravity[index * 3 + 2] = 0;
+	}
+	_gravity[29] = 10000000;
 
 	check_glstate("init_particles", true);
 }
 
-void Display::render( double deltaTime )
+void Display::handleInputs( void )
 {
-	int num_part = static_cast<int>(_state.born_parts);
-	if (num_part < NUM_PARTS) {
-		_state.born_parts += 1000 * deltaTime; // birth rate
-		if (_state.born_parts > NUM_PARTS) {
-			_state.born_parts = NUM_PARTS;
-		}
+	if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+		double mouseX, mouseY;
+		glfwGetCursorPos(_window, &mouseX, &mouseY);
+		// _origin = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
+		_cores[_current_core]._origin = {static_cast<float>(mouseX + _winPos[0]), static_cast<float>(mouseY + _winPos[1])};
+		_gravity[_current_core * 3] = mouseX + _winPos[0];
+		_gravity[_current_core * 3 + 1] = mouseY + _winPos[1];
+	}
+	if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+		double mouseX, mouseY;
+		glfwGetCursorPos(_window, &mouseX, &mouseY);
+		// _gravity_center = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
+		_gravity[27] = mouseX + _winPos[0];
+		_gravity[28] = mouseY + _winPos[1];
+	} else {
+		_gravity[27] = 1000000;
 	}
 
-	glClear(GL_COLOR_BUFFER_BIT);
-	glUseProgram(_shaderUpdateProgram);
+	if (glfwGetKey(_window, GLFW_KEY_1) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_2) == GLFW_RELEASE
+		&& glfwGetKey(_window, GLFW_KEY_3) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_4) == GLFW_RELEASE
+		&& glfwGetKey(_window, GLFW_KEY_5) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_6) == GLFW_RELEASE
+		&& glfwGetKey(_window, GLFW_KEY_7) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_8) == GLFW_RELEASE
+		&& glfwGetKey(_window, GLFW_KEY_9) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_G) == GLFW_RELEASE) {
+		_input_released = true;
+	} else if (_input_released) {
+		_input_released = false;
+		size_t core_loc = 12;
+		if (glfwGetKey(_window, GLFW_KEY_1) == GLFW_PRESS) {
+			core_loc = 0;
+		} else if (glfwGetKey(_window, GLFW_KEY_2) == GLFW_PRESS) {
+			core_loc = 1;
+		} else if (glfwGetKey(_window, GLFW_KEY_3) == GLFW_PRESS) {
+			core_loc = 2;
+		} else if (glfwGetKey(_window, GLFW_KEY_4) == GLFW_PRESS) {
+			core_loc = 3;
+		} else if (glfwGetKey(_window, GLFW_KEY_5) == GLFW_PRESS) {
+			core_loc = 4;
+		} else if (glfwGetKey(_window, GLFW_KEY_6) == GLFW_PRESS) {
+			core_loc = 5;
+		} else if (glfwGetKey(_window, GLFW_KEY_7) == GLFW_PRESS) {
+			core_loc = 6;
+		} else if (glfwGetKey(_window, GLFW_KEY_8) == GLFW_PRESS) {
+			core_loc = 7;
+		} else if (glfwGetKey(_window, GLFW_KEY_9) == GLFW_PRESS) {
+			core_loc = 8;
+		} else if (glfwGetKey(_window, GLFW_KEY_G) == GLFW_PRESS) {
+			// _cores[_current_core]._mass *= -1;
+			_gravity[_current_core * 3 + 2] *= -1;
+			return ;
+		}
+		if (core_loc == _cores.size()) {
+			add_core();
+			_current_core = core_loc;
+		} else if (core_loc < _cores.size()) _current_core = core_loc;
+	}
+}
 
-	glUniform1f(_uniDeltaT, deltaTime);
-	glUniform2f(_uniOrigin, _origin[0], _origin[1]);
-	glUniform2f(_uniGravity, _gravity_center[0], _gravity_center[1]);
-	glUniform1f(_uniMinTheta, -3.1415f);
-	glUniform1f(_uniMaxTheta, 3.1415f);
-	// glUniform1f(_uniMinSpeed, 0.05f);
-	// glUniform1f(_uniMaxSpeed, 0.1f);
-	glUniform1f(_uniMinSpeed, 50.0f);
-	glUniform1f(_uniMaxSpeed, 60.0f);
+void Display::render( double deltaTime )
+{
+	size_t index = 0;
+	for (auto &c : _cores) {
+		int num_part = static_cast<int>(c._born_parts);
+		if (num_part < NUM_PARTS) {
+			c._born_parts += 1000 * deltaTime; // birth rate
+			if (c._born_parts > NUM_PARTS) {
+				c._born_parts = NUM_PARTS;
+			}
+		}
 
-	glBindVertexArray(_vaos[_state.read]);
-	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, _vbos[_state.write]);
+		glUseProgram(_shaderUpdateProgram);
 
-	glEnable(GL_RASTERIZER_DISCARD); // we don't render anything
+		glUniform1f(_uniDeltaT, deltaTime);
+		glUniform2f(_uniOrigin, c._origin[0], c._origin[1]);
+		_gravity[index * 3] = 1000000; // disable own gravity
+		glUniform3fv(_uniGravity, 10, &_gravity[0]);
+		_gravity[index * 3] = c._origin[0]; // enable own gravity back for next cores
+		++index;
+		glUniform1f(_uniMinTheta, c._minTheta);
+		glUniform1f(_uniMaxTheta, c._maxTheta);
+		glUniform1f(_uniMinSpeed, c._minSpeed);
+		glUniform1f(_uniMaxSpeed, c._maxSpeed);
+		glUniform1f(_uniTerminalVelocity, c._terminalVelocity);
 
-	glBeginTransformFeedback(GL_POINTS);
-	glDrawArrays(GL_POINTS, 0, num_part);
-	glEndTransformFeedback();
+		glBindVertexArray(c._vaos[_state.read]);
+		glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, c._vbos[_state.write]);
 
-	glDisable(GL_RASTERIZER_DISCARD);
+		glEnable(GL_RASTERIZER_DISCARD); // we don't render anything
 
-	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, NULL); // unbind transform feedback buffer
+		glBeginTransformFeedback(GL_POINTS);
+		glDrawArrays(GL_POINTS, 0, num_part);
+		glEndTransformFeedback();
 
-	// now we draw
-	glBindVertexArray(_vaos[_state.read + 2]);
-	// glBindVertexArray(_vaos[_state.write + 2]);
-	glUseProgram(_shaderRenderProgram);
+		glDisable(GL_RASTERIZER_DISCARD);
 
-	glUniform2i(_uniWinPos, _winPos[0], _winPos[1]);
-	glUniform2i(_uniWinSize, _winWidth, _winHeight);
-	// glUniform2i(_uniWinOffset, 0, 0);
-	// glUniform1f(_uniWinZoom, 1.0f);
-	glUniform1f(_uniRMinSpeed, 20.0f);
-	glUniform1f(_uniRMaxSpeed, 100.0f);
+		glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, NULL); // unbind transform feedback buffer
 
-	glDrawArrays(GL_POINTS, 0, num_part);
+		// now we draw
+		glBindVertexArray(c._vaos[_state.read]);
+		glUseProgram(_shaderRenderProgram);
+
+		glUniform2i(_uniWinPos, _winPos[0], _winPos[1]);
+		glUniform2i(_uniWinSize, _winWidth, _winHeight);
+		// glUniform2i(_uniWinOffset, 0, 0);
+		// glUniform1f(_uniWinZoom, 1.0f);
+		glUniform1f(_uniRMinSpeed, c._minSpeed / 2);
+		glUniform1f(_uniRMaxSpeed, c._terminalVelocity);
+
+		glDrawArrays(GL_POINTS, 0, num_part);
+	}
 
 	int tmp = _state.read;
 	_state.read = _state.write;
@@ -241,6 +334,7 @@ void Display::render( double deltaTime )
 
 void Display::main_loop( void )
 {
+	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glfwSwapInterval(1);
@@ -250,9 +344,6 @@ void Display::main_loop( void )
 	set_display_callback(this);
 	glfwSetWindowSizeCallback(_window, window_size_callback);
 	glfwSetWindowPosCallback(_window, window_pos_callback);
-
-	glfwGetWindowPos(_window, &_winPos[0], &_winPos[1]);
-	_origin = {static_cast<float>(_winPos[0] + _winWidth / 2), static_cast<float>(_winPos[1] + _winHeight / 2)};
 
 	check_glstate("setup done, entering main loop\n", true);
 
@@ -265,31 +356,20 @@ void Display::main_loop( void )
 			continue ;
 		}
 
-		if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-			double mouseX, mouseY;
-			glfwGetCursorPos(_window, &mouseX, &mouseY);
-			// _origin = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
-			_origin = {static_cast<float>(mouseX + _winPos[0]), static_cast<float>(mouseY + _winPos[1])};
-		}
-		if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
-			double mouseX, mouseY;
-			glfwGetCursorPos(_window, &mouseX, &mouseY);
-			// _gravity_center = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
-			_gravity_center = {static_cast<float>(mouseX + _winPos[0]), static_cast<float>(mouseY + _winPos[1])};
-		} else {
-			_gravity_center[0] = 1000000;
-		}
+		handleInputs();
 
 		double currentTime = glfwGetTime();
 		double deltaTime = currentTime - previousFrame;
 		++nbFrames;
 		if (currentTime - lastTime >= 1.0) {
-			std::cout << "FPS: " << nbFrames << ", " << _state.born_parts << " parts" << std::endl;
+			float nb_parts = 0;
+			for (size_t i = 0; i < _cores.size(); ++i) nb_parts += _cores[i]._born_parts;
+			std::cout << "FPS: " << nbFrames << ", " << nb_parts << " parts. current_core " << _current_core << "/" << _cores.size() << std::endl;
 			nbFramesLastSecond = nbFrames;
 			nbFrames = 0;
 			lastTime += 1.0;
 		}
-
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		render(deltaTime);
 		glfwSwapBuffers(_window);
 		glfwPollEvents();
@@ -319,6 +399,6 @@ void Display::start( void )
 	setup_communication_shaders();
 	load_texture();
 	// init_particles(NUM_PARTS, 1.01f, 1.15f);
-	init_particles(NUM_PARTS, 5.01f, 10.15f);
+	init_cores(NUM_PARTS, 5.01f, 10.15f);
 	main_loop();
 }

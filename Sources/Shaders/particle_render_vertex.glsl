@@ -20,5 +20,5 @@ void main() {
   Speed = (clamp(length(velocity), minSpeed, maxSpeed) - minSpeed) / (maxSpeed - minSpeed);
 
   gl_PointSize = 5.0 * Percent;
-  gl_Position = vec4(((position.x - winPos.x) / winSize.x) * 2 - 1, ((position.y - winPos.y) / winSize.y) * -2 + 1, 0.0, 1.0);
+  gl_Position = vec4(((position.x - winPos.x) / winSize.x) * 2 - 1, ((position.y - winPos.y) / winSize.y) * -2 + 1, Percent, 1.0);
 }

@@ -8,11 +8,12 @@ in vec2 velocity;
 uniform float deltaTime;
 uniform sampler2D rgNoise;
 uniform vec2 origin;
-uniform vec2 gravity;
+uniform vec3 gravity[10];
 uniform float minTheta;
 uniform float maxTheta;
 uniform float minSpeed;
 uniform float maxSpeed;
+uniform float terminalVelocity;
 
 out vec2 Position;
 out float Age;
@@ -37,12 +38,20 @@ void main() {
 		Age = age + deltaTime;
 		Life = life;
 		vec2 f_gravity = vec2(0, 0);
-		if (gravity.x < 999999) {
-			// F = G * (Ma * Mb) / d²
-			float dist = max(100.0f, distance(position, gravity)); // 0.2
-			f_gravity = normalize(gravity - position) * 500000 / (dist * dist);
-			// f_gravity = normalize(position - gravity) * 5000000 / (dist * dist);
+		vec2 n_velocity = velocity;
+		for (int i = 0; i < 10; ++i) {
+			if (gravity[i].x < 999999 && abs(gravity[i].z) > 1000) {
+				// F = G * (Ma * Mb) / d²
+				// float dist = max(100.0f, distance(position, gravity)); // 0.2
+				float dist = distance(position, vec2(gravity[i]));
+				f_gravity = normalize(vec2(gravity[i]) - position) * gravity[i].z / (dist * dist);
+				// f_gravity = normalize(position - gravity) * 10000000 / (dist * dist);
+				n_velocity += f_gravity * deltaTime;
+			}
 		}
-		Velocity = velocity + f_gravity * deltaTime;
+		if (length(n_velocity) > terminalVelocity) {
+			n_velocity = velocity;
+		}
+		Velocity = n_velocity;
 	}
 }

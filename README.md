@@ -14,7 +14,17 @@ $ ./cores
 ```
 make setup will install the needed [static libraries.](#libraries)
 
-make will create the needed executables - server and client.
+make will create the executable 'cores'.
+
+## Controls
+When the program starts, there is one core at the center of the window, emitting particles.
+You can left click to move the core around.
+
+If you hold right click, your cursor will attract particles.
+
+By pressing 123456789, you can change the core you are currently controlling, if you press a number higher than the number of cores, a new core will be generated.  You can generate up to 9 cores.  Each core will attract the particles of the other cores.  If you press G, the core you control will change it's polarity(ie go from attraction to repulsion and vice versa).
+
+The cores' positions are absolute, meaning that when you drag the window accross the screen, the cores don't move along.
 
 ## Libraries
 * [GLFW](https://github.com/glfw/glfw.git) is an Open Source, multi-platform library for OpenGL, OpenGL ES and Vulkan application development. It provides a simple, platform-independent API for creating windows, contexts and surfaces, reading input, handling events, etc.
