@@ -29,7 +29,9 @@ class Display
 		GLFWwindow *_window;
 		GLuint _vaos[4], _vbos[2], _shaderUpdateProgram, _shaderRenderProgram;
 		GLint _uniDeltaT, _uniOrigin, _uniGravity, _uniMinTheta, _uniMaxTheta, _uniMinSpeed, _uniMaxSpeed;
+		GLint _uniWinPos, _uniWinSize, _uniRMinSpeed, _uniRMaxSpeed;
 		GLint _winWidth, _winHeight;
+		std::array<int, 2> _winPos;
 		GLuint _texture;
 		std::array<float, 2> _origin, _gravity_center;
 		t_state _state;
@@ -48,6 +50,7 @@ class Display
 		~Display( void );
 
 		void setWindowSize( int width, int height );
+		void setWindowPos( int posX, int posY );
 
 		void start( void );
 };

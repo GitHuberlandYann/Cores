@@ -3,7 +3,7 @@
 #include "callbacks.hpp"
 
 Display::Display( void )
-	: _window(NULL), _winWidth(WIN_WIDTH), _winHeight(WIN_HEIGHT), _texture(0), _origin({0, 0})
+	: _window(NULL), _winWidth(WIN_WIDTH), _winHeight(WIN_HEIGHT), _texture(0)
 {
 }
 
@@ -47,13 +47,8 @@ void Display::setup_window( void )
 
 	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 	// glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GL_TRUE);
-	// glfwWindowHint(GLFW_CENTER_CURSOR, GL_TRUE);
 
-	// std::cout << "win size is set to " << _winWidth << ", " << _winHeight << std::endl;
-	// (IS_LINUX)
-	// 	? _window = glfwCreateWindow(WIN_WIDTH, WIN_HEIGHT, "multiChess", nullptr, nullptr)
-	// 	: _window = glfwCreateWindow(WIN_WIDTH, WIN_HEIGHT, "multiChess", glfwGetPrimaryMonitor(), nullptr);
-	_window = glfwCreateWindow(WIN_WIDTH, WIN_HEIGHT, "Cores", nullptr, nullptr);
+	_window = glfwCreateWindow(_winWidth, _winHeight, "Cores", nullptr, nullptr);
 	if (_window == NULL)
     {
         std::cerr << "Failed to create GLFW window" << std::endl;
@@ -112,6 +107,11 @@ void Display::setup_communication_shaders( void )
 	_uniMaxTheta = glGetUniformLocation(_shaderUpdateProgram, "maxTheta");
 	_uniMinSpeed = glGetUniformLocation(_shaderUpdateProgram, "minSpeed");
 	_uniMaxSpeed = glGetUniformLocation(_shaderUpdateProgram, "maxSpeed");
+
+	_uniWinPos = glGetUniformLocation(_shaderRenderProgram, "winPos");
+	_uniWinSize = glGetUniformLocation(_shaderRenderProgram, "winSize");
+	_uniRMinSpeed = glGetUniformLocation(_shaderRenderProgram, "minSpeed");
+	_uniRMaxSpeed = glGetUniformLocation(_shaderRenderProgram, "maxSpeed");
 
 	check_glstate("\nCommunication with shader program successfully established", true);
 }
@@ -200,10 +200,10 @@ void Display::render( double deltaTime )
 	glUniform2f(_uniGravity, _gravity_center[0], _gravity_center[1]);
 	glUniform1f(_uniMinTheta, -3.1415f);
 	glUniform1f(_uniMaxTheta, 3.1415f);
-	glUniform1f(_uniMinSpeed, 0.05f);
-	glUniform1f(_uniMaxSpeed, 0.1f);
-	// glUniform1f(_uniMinSpeed, 0.2f);
-	// glUniform1f(_uniMaxSpeed, 0.6f);
+	// glUniform1f(_uniMinSpeed, 0.05f);
+	// glUniform1f(_uniMaxSpeed, 0.1f);
+	glUniform1f(_uniMinSpeed, 50.0f);
+	glUniform1f(_uniMaxSpeed, 60.0f);
 
 	glBindVertexArray(_vaos[_state.read]);
 	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, _vbos[_state.write]);
@@ -222,6 +222,14 @@ void Display::render( double deltaTime )
 	glBindVertexArray(_vaos[_state.read + 2]);
 	// glBindVertexArray(_vaos[_state.write + 2]);
 	glUseProgram(_shaderRenderProgram);
+
+	glUniform2i(_uniWinPos, _winPos[0], _winPos[1]);
+	glUniform2i(_uniWinSize, _winWidth, _winHeight);
+	// glUniform2i(_uniWinOffset, 0, 0);
+	// glUniform1f(_uniWinZoom, 1.0f);
+	glUniform1f(_uniRMinSpeed, 20.0f);
+	glUniform1f(_uniRMaxSpeed, 100.0f);
+
 	glDrawArrays(GL_POINTS, 0, num_part);
 
 	int tmp = _state.read;
@@ -238,8 +246,13 @@ void Display::main_loop( void )
 	glfwSwapInterval(1);
 	glClearColor(0, 0, 0, 1.0f);
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
 	set_display_callback(this);
 	glfwSetWindowSizeCallback(_window, window_size_callback);
+	glfwSetWindowPosCallback(_window, window_pos_callback);
+
+	glfwGetWindowPos(_window, &_winPos[0], &_winPos[1]);
+	_origin = {static_cast<float>(_winPos[0] + _winWidth / 2), static_cast<float>(_winPos[1] + _winHeight / 2)};
 
 	check_glstate("setup done, entering main loop\n", true);
 
@@ -255,14 +268,16 @@ void Display::main_loop( void )
 		if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
 			double mouseX, mouseY;
 			glfwGetCursorPos(_window, &mouseX, &mouseY);
-			_origin = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
+			// _origin = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
+			_origin = {static_cast<float>(mouseX + _winPos[0]), static_cast<float>(mouseY + _winPos[1])};
 		}
 		if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
 			double mouseX, mouseY;
 			glfwGetCursorPos(_window, &mouseX, &mouseY);
-			_gravity_center = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
+			// _gravity_center = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
+			_gravity_center = {static_cast<float>(mouseX + _winPos[0]), static_cast<float>(mouseY + _winPos[1])};
 		} else {
-			_gravity_center[0] = 1000;
+			_gravity_center[0] = 1000000;
 		}
 
 		double currentTime = glfwGetTime();
@@ -290,6 +305,11 @@ void Display::setWindowSize( int width, int height )
 {
 	_winWidth = width;
 	_winHeight = height;
+}
+
+void Display::setWindowPos( int posX, int posY )
+{
+	_winPos = {posX, posY};
 }
 
 void Display::start( void )

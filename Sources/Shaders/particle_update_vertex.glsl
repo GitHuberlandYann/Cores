@@ -37,10 +37,11 @@ void main() {
 		Age = age + deltaTime;
 		Life = life;
 		vec2 f_gravity = vec2(0, 0);
-		if (gravity.x < 999) {
+		if (gravity.x < 999999) {
 			// F = G * (Ma * Mb) / d²
-			float dist = max(0.4f, distance(position, gravity)); // 0.2
-			f_gravity = normalize(gravity - position) * 0.7 / (dist * dist);
+			float dist = max(100.0f, distance(position, gravity)); // 0.2
+			f_gravity = normalize(gravity - position) * 500000 / (dist * dist);
+			// f_gravity = normalize(position - gravity) * 5000000 / (dist * dist);
 		}
 		Velocity = velocity + f_gravity * deltaTime;
 	}

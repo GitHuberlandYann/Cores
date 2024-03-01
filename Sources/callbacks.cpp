@@ -25,6 +25,16 @@ void window_size_callback( GLFWwindow *window, int width, int height )
 	}
 }
 
+
+void window_pos_callback( GLFWwindow *window, int posX, int posY )
+{
+	(void)window;
+	// std::cout << "window pos set to " << posX << ", " << posY << std::endl;
+	if (display) {
+		display->setWindowPos(posX, posY);
+	}
+}
+
 void error_callback( int error, const char *msg )
 {
     std::string s;
