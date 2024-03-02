@@ -1,7 +1,7 @@
 #ifndef DISPLAY_HPP
 # define DISPLAY_HPP
 
-# include "utils.hpp"
+# include "Gui.hpp"
 # include <array>
 # include <vector>
 
@@ -27,7 +27,7 @@ typedef struct s_core {
 	GLuint _vaos[2], _vbos[2];
 	float _born_parts = 0;
 	std::array<float, 2> _origin;
-	float _mass; // NONE, ATTRACTION>0, REPULSION<0
+	float _mass; // NONE=0, ATTRACTION>0, REPULSION<0
 	float _minTheta, _maxTheta;
 	float _minSpeed, _maxSpeed, _terminalVelocity;
 }				t_core;
@@ -48,6 +48,7 @@ class Display
 		int _current_core;
 		bool _input_released;
 		std::vector<t_core> _cores;
+		Gui *_gui;
 
 		void setup_window( void );
 		void create_shaders( void );

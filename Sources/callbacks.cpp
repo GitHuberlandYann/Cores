@@ -7,10 +7,12 @@
 #endif
 
 Display *display = NULL;
+Gui *gui = NULL;
 
-void set_display_callback( Display *dis )
+void set_display_callback( Display *dis, Gui *g )
 {
 	display = dis;
+	gui = g;
 }
 
 void window_size_callback( GLFWwindow *window, int width, int height )
@@ -25,13 +27,29 @@ void window_size_callback( GLFWwindow *window, int width, int height )
 	}
 }
 
-
 void window_pos_callback( GLFWwindow *window, int posX, int posY )
 {
 	(void)window;
 	// std::cout << "window pos set to " << posX << ", " << posY << std::endl;
 	if (display) {
 		display->setWindowPos(posX, posY);
+	}
+}
+
+void cursor_pos_callback( GLFWwindow *window, double posX, double posY )
+{
+	(void)window;
+	if (gui) {
+		gui->setCursorPos(posX, posY);
+	}
+}
+
+void mouse_button_callback( GLFWwindow *window, int button, int action, int mods )
+{
+	(void)window;
+	(void)mods;
+	if (gui) {
+		gui->setMouseButton(button, action);
 	}
 }
 

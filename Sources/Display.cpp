@@ -3,8 +3,10 @@
 #include "callbacks.hpp"
 
 Display::Display( void )
-	: _window(NULL), _winWidth(WIN_WIDTH), _winHeight(WIN_HEIGHT), _texture(0), _current_core(0), _input_released(true)
+	: _window(NULL), _winWidth(WIN_WIDTH), _winHeight(WIN_HEIGHT), _texture(0), _current_core(0),
+		_input_released(true)
 {
+	_gui = new Gui();
 }
 
 Display::~Display( void )
@@ -25,6 +27,8 @@ Display::~Display( void )
 
 	glfwMakeContextCurrent(NULL);
     glfwTerminate();
+
+	delete _gui;
 
 	check_glstate("Display successfully destructed", true);
 }
@@ -215,22 +219,24 @@ void Display::init_cores( int num_parts, float min_age, float max_age )
 
 void Display::handleInputs( void )
 {
-	if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-		double mouseX, mouseY;
-		glfwGetCursorPos(_window, &mouseX, &mouseY);
-		// _origin = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
-		_cores[_current_core]._origin = {static_cast<float>(mouseX + _winPos[0]), static_cast<float>(mouseY + _winPos[1])};
-		_gravity[_current_core * 3] = mouseX + _winPos[0];
-		_gravity[_current_core * 3 + 1] = mouseY + _winPos[1];
-	}
-	if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
-		double mouseX, mouseY;
-		glfwGetCursorPos(_window, &mouseX, &mouseY);
-		// _gravity_center = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
-		_gravity[27] = mouseX + _winPos[0];
-		_gravity[28] = mouseY + _winPos[1];
-	} else {
-		_gravity[27] = 1000000;
+	if (!_gui->mouseControl()) {
+		if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+			double mouseX, mouseY;
+			glfwGetCursorPos(_window, &mouseX, &mouseY);
+			// _origin = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
+			_cores[_current_core]._origin = {static_cast<float>(mouseX + _winPos[0]), static_cast<float>(mouseY + _winPos[1])};
+			_gravity[_current_core * 3] = mouseX + _winPos[0];
+			_gravity[_current_core * 3 + 1] = mouseY + _winPos[1];
+		}
+		if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+			double mouseX, mouseY;
+			glfwGetCursorPos(_window, &mouseX, &mouseY);
+			// _gravity_center = {static_cast<float>((mouseX / _winWidth) * 2 - 1), -static_cast<float>((mouseY / _winHeight) * 2 - 1)};
+			_gravity[27] = mouseX + _winPos[0];
+			_gravity[28] = mouseY + _winPos[1];
+		} else {
+			_gravity[27] = 1000000;
+		}
 	}
 
 	if (glfwGetKey(_window, GLFW_KEY_1) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_2) == GLFW_RELEASE
@@ -269,6 +275,7 @@ void Display::handleInputs( void )
 			add_core();
 			_current_core = core_loc;
 		} else if (core_loc < _cores.size()) _current_core = core_loc;
+		_gui->createWindow("Core " + std::to_string(core_loc), {_winWidth - 220, 20});
 	}
 }
 
@@ -276,6 +283,7 @@ void Display::render( double deltaTime )
 {
 	size_t index = 0;
 	for (auto &c : _cores) {
+		// _gui->addText(c._origin[0] - _winPos[0], c._origin[1] - _winPos[1], 24, RGBA::WHITE, "Debug");
 		int num_part = static_cast<int>(c._born_parts);
 		if (num_part < NUM_PARTS) {
 			c._born_parts += 1000 * deltaTime; // birth rate
@@ -341,9 +349,12 @@ void Display::main_loop( void )
 	glClearColor(0, 0, 0, 1.0f);
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
-	set_display_callback(this);
+	set_display_callback(this, _gui);
 	glfwSetWindowSizeCallback(_window, window_size_callback);
 	glfwSetWindowPosCallback(_window, window_pos_callback);
+	glfwSetCursorPosCallback(_window, cursor_pos_callback);
+	glfwSetMouseButtonCallback(_window, mouse_button_callback);
+	_gui->setWindowSize(_winWidth, _winHeight);
 
 	check_glstate("setup done, entering main loop\n", true);
 
@@ -371,6 +382,7 @@ void Display::main_loop( void )
 		}
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		render(deltaTime);
+		_gui->render();
 		glfwSwapBuffers(_window);
 		glfwPollEvents();
 		previousFrame = currentTime;
@@ -385,6 +397,7 @@ void Display::setWindowSize( int width, int height )
 {
 	_winWidth = width;
 	_winHeight = height;
+	_gui->setWindowSize(width, height);
 }
 
 void Display::setWindowPos( int posX, int posY )
@@ -398,7 +411,7 @@ void Display::start( void )
 	create_shaders();
 	setup_communication_shaders();
 	load_texture();
-	// init_particles(NUM_PARTS, 1.01f, 1.15f);
 	init_cores(NUM_PARTS, 5.01f, 10.15f);
+	_gui->start();
 	main_loop();
 }
