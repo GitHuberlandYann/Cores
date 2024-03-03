@@ -40,11 +40,11 @@ void main() {
 		vec2 f_gravity = vec2(0, 0);
 		vec2 n_velocity = velocity;
 		for (int i = 0; i < 10; ++i) {
-			if (gravity[i].x < 999999 && abs(gravity[i].z) > 1000) {
+			if (gravity[i].x < 999999 && gravity[i].z > 0) {
 				// F = G * (Ma * Mb) / d²
 				// float dist = max(100.0f, distance(position, gravity)); // 0.2
 				float dist = distance(position, vec2(gravity[i]));
-				f_gravity = normalize(vec2(gravity[i]) - position) * gravity[i].z / (dist * dist);
+				f_gravity = normalize(vec2(gravity[i]) - position) * pow(10, gravity[i].z) / (dist * dist);
 				// f_gravity = normalize(position - gravity) * 10000000 / (dist * dist);
 				n_velocity += f_gravity * deltaTime;
 			}

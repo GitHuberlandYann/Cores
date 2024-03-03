@@ -17,6 +17,10 @@ enum {
 
 std::string get_file_content( std::string file_name );
 bool inRectangle( int posX, int posY, int rx, int ry, int width, int height );
+float getPercent( const float value, const float range_start, const float range_end );
+float gradient( float value, float start, float end, float grad_start, float grad_end );
+
+std::string to_string_with_precision( const float value, const int precision = 2, const bool zero_allowed = true );
 
 // shaders
 GLuint createShaderProgram( std::string vertex, std::string geometry, std::string fragment );

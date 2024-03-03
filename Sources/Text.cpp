@@ -79,6 +79,22 @@ void Text::setWindowSize( int width, int height )
 	glUniform1i(_uniHeight, height);
 }
 
+void Text::addTriangle( int spec, std::array<int, 2> a, std::array<int, 2> b, std::array<int, 2> c, int color )
+{
+	_texts.push_back(spec + (1 << 8) + (0 << 9));
+	_texts.push_back(color);
+	_texts.push_back(a[0]);
+	_texts.push_back(a[1]);
+	_texts.push_back(spec + (1 << 8) + (1 << 9));
+	_texts.push_back(color);
+	_texts.push_back(b[0]);
+	_texts.push_back(b[1]);
+	_texts.push_back(spec + (0 << 8) + (1 << 9));
+	_texts.push_back(color);
+	_texts.push_back(c[0]);
+	_texts.push_back(c[1]);
+}
+
 void Text::addQuads( int spec, int posX, int posY, int width, int height, int color )
 {
 	_texts.push_back(spec + (0 << 8) + (0 << 9));
@@ -106,6 +122,52 @@ void Text::addQuads( int spec, int posX, int posY, int width, int height, int co
 	_texts.push_back(color);
 	_texts.push_back(posX);
 	_texts.push_back(posY + height);
+}
+
+int Text::textWidth( int font_size, std::string str )
+{
+	int res = 0;
+	for (size_t i = 0, charLine = 0; str[i]; ++i, ++charLine) {
+		switch (str[i]) {
+			case '\n':
+				break ;
+			case '\t':
+				charLine += 4 - (charLine & 3);
+				res = charLine * font_size;
+				break ;
+			case 'i':
+			case '.':
+			case ':':
+			case '!':
+			case '\'':
+			case ',':
+			case ';':
+			case '|':
+			case '`':
+				res += font_size * 0.5f;
+				break ;
+			case 'I':
+			case '[':
+			case ']':
+			case '"':
+			case '*':
+				res += font_size * 0.6f;
+				break ;
+			case 'l':
+			case 't':
+			case '(':
+			case ')':
+			case '<':
+			case '>':
+			case '{':
+			case '}':
+				res += font_size * 0.7f;
+			default:
+				res += font_size;
+				break ;
+		}
+	}
+	return (res);
 }
 
 void Text::addText( int posX, int posY, int font_size, int color, std::string str )

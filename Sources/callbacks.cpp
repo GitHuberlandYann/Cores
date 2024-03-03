@@ -46,10 +46,9 @@ void cursor_pos_callback( GLFWwindow *window, double posX, double posY )
 
 void mouse_button_callback( GLFWwindow *window, int button, int action, int mods )
 {
-	(void)window;
 	(void)mods;
 	if (gui) {
-		gui->setMouseButton(button, action);
+		gui->setMouseButton(window, button, action);
 	}
 }
 

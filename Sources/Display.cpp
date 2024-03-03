@@ -156,10 +156,10 @@ void Display::add_core( void )
 	t_core &c = _cores.back();
 
 	c._origin = {static_cast<float>(_winPos[0] + _winWidth / 2), static_cast<float>(_winPos[1] + _winHeight / 2)};
-	c._mass = 5000000;
+	c._mass = 6.6989; //==5000000;
 	_gravity[index * 3 + 0] = c._origin[0];
 	_gravity[index * 3 + 1] = c._origin[1];
-	_gravity[index * 3 + 2] = c._mass;
+	_gravity[index * 3 + 2] = c._mass; // we store power of 10, so mass of 1 is 10, 2 is 100, ...
 	c._minTheta = -3.1415f;
 	c._maxTheta = 3.1415f;
 	c._minSpeed = 50.0f;
@@ -212,7 +212,7 @@ void Display::init_cores( int num_parts, float min_age, float max_age )
 		_gravity[index * 3 + 1] = 0;
 		_gravity[index * 3 + 2] = 0;
 	}
-	_gravity[29] = 10000000;
+	_gravity[29] = 7.0f; // 10**7
 
 	check_glstate("init_particles", true);
 }
@@ -275,7 +275,9 @@ void Display::handleInputs( void )
 			add_core();
 			_current_core = core_loc;
 		} else if (core_loc < _cores.size()) _current_core = core_loc;
-		_gui->createWindow("Core " + std::to_string(core_loc), {_winWidth - 220, 20});
+		if (_gui->createWindow("Core " + std::to_string(core_loc), {_winWidth - 220, 20})) {
+			_gui->addSliderFloat("Mass", &_gravity[core_loc * 3 + 2], 1, 10);
+		}
 	}
 }
 

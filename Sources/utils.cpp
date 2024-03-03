@@ -1,5 +1,6 @@
 #include "utils.hpp"
 #include <fstream>
+#include <sstream>
 
 std::string get_file_content( std::string file_name )
 {
@@ -24,6 +25,46 @@ bool inRectangle( int posX, int posY, int rx, int ry, int width, int height )
 {
 	// std::cout << "inRectangle pos " << posX << ", " << posY << std::endl;
 	return (posX >= rx && posX <= rx + width && posY >= ry && posY <= ry + height);
+}
+
+float getPercent( const float value, const float range_start, const float range_end )
+{
+	// std::cout << "getPercent " << value << ", " << range_start << " - " << range_end << std::endl;
+	if (value < range_start) return (0.0f);
+	if (value > range_end) return (1.0f);
+	return (value - range_start) / (range_end - range_start);
+}
+
+float gradient( float value, float start, float end, float grad_start, float grad_end )
+{
+	if (value <= start) {
+		return (grad_start);
+	} else if (value >= end) {
+		return (grad_end);
+	}
+
+	float progress = (value - start) / (end - start);
+	return (grad_start + progress * (grad_end - grad_start));
+}
+
+std::string to_string_with_precision( const float value, const int precision, const bool zero_allowed )
+{
+    std::ostringstream out;
+    out.precision(precision);
+    out << std::fixed << value;
+	if (zero_allowed) {
+		return (std::move(out).str());
+	}
+	std::string res = std::move(out).str();
+	size_t index = res.find('.'), i = 1;
+	if (index == std::string::npos) {
+		return (res);
+	}
+	while (res[index + i] == '0') ++i;
+	if (res[index + i]) {
+		return (res);
+	}
+	return (res.substr(0, index));
 }
 
 // ************************************************************************** //
