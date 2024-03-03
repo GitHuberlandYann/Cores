@@ -281,7 +281,7 @@ void Display::handleInputs( void )
 			_current_core = core_loc;
 		} else if (core_loc < _cores.size()) _current_core = core_loc;
 		else return ;
-		if (_gui->createWindow("Core " + std::to_string(core_loc + 1), {_winWidth - 220, 20})) {
+		if (_gui->createWindow("Core " + std::to_string(core_loc), {_winWidth - 220, 20})) {
 			t_core &c = _cores[core_loc];
 			_gui->addSliderFloat("Mass", &_gravity[core_loc * 3 + 2], 1, 10);
 			_gui->addEnum({"ATTRACTION", "REPULSION"}, &_polarity[core_loc]);

@@ -157,12 +157,20 @@ void Gui::setWindowSize( int width, int height )
 	_text->setWindowSize(width, height);
 }
 
+// return highlighted window's index, or number if number in window's title
 int Gui::getHighlightedWindow( int previous )
 {
 	if (_highlighted_window == -1) {
 		return (previous);
 	}
-	return (_highlighted_window);
+	std::string title = _content[_highlighted_window].title;
+	if (title.empty()) return (_highlighted_window);
+	if (!isdigit(title[title.size() - 1])) return (_highlighted_window);
+	int res = 0, i = title.size() - 1;
+	for (; i >= 0 && isdigit(title[i]); --i);
+	++i;
+	for (; title[i]; ++i) res = res * 10 + title[i] - '0';
+	return (res);
 }
 
 void Gui::setCursorPos( double posX, double posY )
@@ -283,7 +291,7 @@ void Gui::start( void )
 
 void Gui::render( void )
 {
-	// _text->addText(10, 10, 20, RGBA::WHITE, "window " + std::to_string(_selection));
+	// _text->addText(10, 10, 20, RGBA::WHITE, "window " + std::to_string(_highlighted_window));
 	for (int index : _draw_order) {
 		renderWindow(_content[index], index);
 	}
@@ -310,6 +318,7 @@ bool Gui::createWindow( std::string title, std::array<int, 2> pos, std::array<in
 		for (auto &win : _content) {
 			if (win.title == title) {
 				_highlighted_window = index;
+				putWindowOnTop(index);
 				return (false);
 			}
 			if (win.pos[1] == pos[1]) {
