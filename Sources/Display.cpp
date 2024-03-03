@@ -7,6 +7,7 @@ Display::Display( void )
 		_input_released(true)
 {
 	_gui = new Gui();
+	_cores.reserve(9);
 }
 
 Display::~Display( void )
@@ -109,6 +110,7 @@ void Display::setup_communication_shaders( void )
 	_uniDeltaT = glGetUniformLocation(_shaderUpdateProgram, "deltaTime");
 	_uniOrigin = glGetUniformLocation(_shaderUpdateProgram, "origin");
 	_uniGravity = glGetUniformLocation(_shaderUpdateProgram, "gravity");
+	_uniPolarity = glGetUniformLocation(_shaderUpdateProgram, "polarity");
 	_uniMinTheta = glGetUniformLocation(_shaderUpdateProgram, "minTheta");
 	_uniMaxTheta = glGetUniformLocation(_shaderUpdateProgram, "maxTheta");
 	_uniMinSpeed = glGetUniformLocation(_shaderUpdateProgram, "minSpeed");
@@ -155,11 +157,13 @@ void Display::add_core( void )
 	_cores.push_back(core);
 	t_core &c = _cores.back();
 
+	c._num_parts = NUM_PARTS;
 	c._origin = {static_cast<float>(_winPos[0] + _winWidth / 2), static_cast<float>(_winPos[1] + _winHeight / 2)};
 	c._mass = 6.6989; //==5000000;
 	_gravity[index * 3 + 0] = c._origin[0];
 	_gravity[index * 3 + 1] = c._origin[1];
 	_gravity[index * 3 + 2] = c._mass; // we store power of 10, so mass of 1 is 10, 2 is 100, ...
+	_polarity[index] = POLARITY::ATTRACTION;
 	c._minTheta = -3.1415f;
 	c._maxTheta = 3.1415f;
 	c._minSpeed = 50.0f;
@@ -211,8 +215,10 @@ void Display::init_cores( int num_parts, float min_age, float max_age )
 		_gravity[index * 3 + 0] = 1000000;
 		_gravity[index * 3 + 1] = 0;
 		_gravity[index * 3 + 2] = 0;
+		_polarity[index] = POLARITY::ATTRACTION;
 	}
 	_gravity[29] = 7.0f; // 10**7
+	_polarity[9] = POLARITY::ATTRACTION;
 
 	check_glstate("init_particles", true);
 }
@@ -243,7 +249,7 @@ void Display::handleInputs( void )
 		&& glfwGetKey(_window, GLFW_KEY_3) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_4) == GLFW_RELEASE
 		&& glfwGetKey(_window, GLFW_KEY_5) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_6) == GLFW_RELEASE
 		&& glfwGetKey(_window, GLFW_KEY_7) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_8) == GLFW_RELEASE
-		&& glfwGetKey(_window, GLFW_KEY_9) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_G) == GLFW_RELEASE) {
+		&& glfwGetKey(_window, GLFW_KEY_9) == GLFW_RELEASE) {
 		_input_released = true;
 	} else if (_input_released) {
 		_input_released = false;
@@ -266,17 +272,22 @@ void Display::handleInputs( void )
 			core_loc = 7;
 		} else if (glfwGetKey(_window, GLFW_KEY_9) == GLFW_PRESS) {
 			core_loc = 8;
-		} else if (glfwGetKey(_window, GLFW_KEY_G) == GLFW_PRESS) {
-			// _cores[_current_core]._mass *= -1;
-			_gravity[_current_core * 3 + 2] *= -1;
-			return ;
 		}
 		if (core_loc == _cores.size()) {
 			add_core();
 			_current_core = core_loc;
 		} else if (core_loc < _cores.size()) _current_core = core_loc;
-		if (_gui->createWindow("Core " + std::to_string(core_loc), {_winWidth - 220, 20})) {
+		else return ;
+		if (_gui->createWindow("Core " + std::to_string(core_loc + 1), {_winWidth - 220, 20})) {
+			t_core &c = _cores[core_loc];
 			_gui->addSliderFloat("Mass", &_gravity[core_loc * 3 + 2], 1, 10);
+			_gui->addEnum({"ATTRACTION", "REPULSION"}, &_polarity[core_loc]);
+			_gui->addSliderInt("Particles", &c._num_parts, 0, NUM_PARTS);
+			_gui->addSliderFloat("Min Speed", &c._minSpeed, 1, 300);
+			_gui->addSliderFloat("Max Speed", &c._maxSpeed, 10, 300);
+			_gui->addSliderFloat("Terminal Speed", &c._terminalVelocity, 10, 1500);
+			_gui->addSliderFloat("Min Theta", &c._minTheta, -3.14159, 3.14159);
+			_gui->addSliderFloat("Max Theta", &c._maxTheta, -3.14159, 3.14159);
 		}
 	}
 }
@@ -287,10 +298,15 @@ void Display::render( double deltaTime )
 	for (auto &c : _cores) {
 		// _gui->addText(c._origin[0] - _winPos[0], c._origin[1] - _winPos[1], 24, RGBA::WHITE, "Debug");
 		int num_part = static_cast<int>(c._born_parts);
-		if (num_part < NUM_PARTS) {
+		if (num_part < c._num_parts) {
 			c._born_parts += 1000 * deltaTime; // birth rate
-			if (c._born_parts > NUM_PARTS) {
-				c._born_parts = NUM_PARTS;
+			if (c._born_parts > c._num_parts) {
+				c._born_parts = c._num_parts;
+			}
+		} else if (num_part > c._num_parts) {
+			c._born_parts -= 1000 * deltaTime; // death rate
+			if (c._born_parts < 0) {
+				c._born_parts = 0;
 			}
 		}
 
@@ -302,6 +318,7 @@ void Display::render( double deltaTime )
 		glUniform3fv(_uniGravity, 10, &_gravity[0]);
 		_gravity[index * 3] = c._origin[0]; // enable own gravity back for next cores
 		++index;
+		glUniform1iv(_uniPolarity, 10, &_polarity[0]);
 		glUniform1f(_uniMinTheta, c._minTheta);
 		glUniform1f(_uniMaxTheta, c._maxTheta);
 		glUniform1f(_uniMinSpeed, c._minSpeed);
@@ -385,6 +402,7 @@ void Display::main_loop( void )
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		render(deltaTime);
 		_gui->render();
+		_current_core = _gui->getHighlightedWindow(_current_core);
 		glfwSwapBuffers(_window);
 		glfwPollEvents();
 		previousFrame = currentTime;

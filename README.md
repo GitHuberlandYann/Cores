@@ -22,7 +22,9 @@ You can left click to move the core around.
 
 If you hold right click, your cursor will attract particles.
 
-By pressing 123456789, you can change the core you are currently controlling, if you press a number higher than the number of cores, a new core will be generated.  You can generate up to 9 cores.  Each core will attract the particles of the other cores.  If you press G, the core you control will change it's polarity(ie go from attraction to repulsion and vice versa).
+By pressing 123456789, you can change the core you are currently controlling, if you press a number higher than the number of cores, a new core will be generated.  You can generate up to 9 cores.  Each core will attract the particles of the other cores.
+
+Pressing 123456789 also opens a custom ui window to control the core you selected, it alows you to tweak the core's properties.
 
 The cores' positions are absolute, meaning that when you drag the window accross the screen, the cores don't move along.
 

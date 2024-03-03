@@ -9,6 +9,7 @@ uniform float deltaTime;
 uniform sampler2D rgNoise;
 uniform vec2 origin;
 uniform vec3 gravity[10];
+uniform int polarity[10];
 uniform float minTheta;
 uniform float maxTheta;
 uniform float minSpeed;
@@ -44,8 +45,7 @@ void main() {
 				// F = G * (Ma * Mb) / d²
 				// float dist = max(100.0f, distance(position, gravity)); // 0.2
 				float dist = distance(position, vec2(gravity[i]));
-				f_gravity = normalize(vec2(gravity[i]) - position) * pow(10, gravity[i].z) / (dist * dist);
-				// f_gravity = normalize(position - gravity) * 10000000 / (dist * dist);
+				f_gravity = ((polarity[i] == 0) ? 1 : -1) * normalize(vec2(gravity[i]) - position) * pow(10, gravity[i].z) / (dist * dist);
 				n_velocity += f_gravity * deltaTime;
 			}
 		}

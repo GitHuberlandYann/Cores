@@ -170,7 +170,7 @@ int Text::textWidth( int font_size, std::string str )
 	return (res);
 }
 
-void Text::addText( int posX, int posY, int font_size, int color, std::string str )
+void Text::addText( int posX, int posY, int font_size, int color, std::string str, int limit )
 {
 	// std::cout << "writing " << str << " in R " << ((color >> 16) & 0xFF) << " G " << ((color >> 8) & 0xFF) << " B " << (color & 0xFF) << " A " << ((color >> 24) & 0xFF) << std::endl;
 	// std::cout << "\tpos " << posX << ", " << posY << std::endl;
@@ -187,6 +187,7 @@ void Text::addText( int posX, int posY, int font_size, int color, std::string st
 			charLine += 4 - (charLine & 3);
 			posX = startX + charLine * font_size;
 		} else {
+			if (posX - startX > limit) return ;
 			char c = str[i];
 			addQuads(c, posX, posY, font_size, font_size, color);
 			if (c == 'i' || c == '.' || c == ':' || c == '!' || c == '\'' || c == ',' || c == ';' || c == '|' || c == '`') {

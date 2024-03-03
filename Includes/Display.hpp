@@ -10,6 +10,14 @@
 # define WIN_WIDTH WIN_HEIGHT * GOLDEN_RATIO
 # define NUM_PARTS 10000
 
+namespace POLARITY
+{
+	enum {
+		ATTRACTION,
+		REPULSION
+	};
+}
+
 typedef struct s_particle {
 	std::array<float, 2> position;
 	float age;
@@ -26,8 +34,9 @@ typedef struct s_core {
 	// bool _visible;
 	GLuint _vaos[2], _vbos[2];
 	float _born_parts = 0;
+	int _num_parts;
 	std::array<float, 2> _origin;
-	float _mass; // NONE=0, ATTRACTION>0, REPULSION<0
+	float _mass; // NONE=??, ATTRACTION>, REPULSION<0
 	float _minTheta, _maxTheta;
 	float _minSpeed, _maxSpeed, _terminalVelocity;
 }				t_core;
@@ -37,11 +46,12 @@ class Display
 	private:
 		GLFWwindow *_window;
 		GLuint _shaderUpdateProgram, _shaderRenderProgram;
-		GLint _uniDeltaT, _uniOrigin, _uniGravity, _uniMinTheta, _uniMaxTheta, _uniMinSpeed, _uniMaxSpeed, _uniTerminalVelocity;
+		GLint _uniDeltaT, _uniOrigin, _uniGravity, _uniPolarity, _uniMinTheta, _uniMaxTheta, _uniMinSpeed, _uniMaxSpeed, _uniTerminalVelocity;
 		GLint _uniWinPos, _uniWinSize, _uniRMinSpeed, _uniRMaxSpeed;
 		GLint _winWidth, _winHeight;
 		std::vector<t_particle> _particles;
 		std::array<float, 30> _gravity;
+		std::array<int, 10> _polarity;
 		std::array<int, 2> _winPos;
 		GLuint _texture;
 		t_state _state;

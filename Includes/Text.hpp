@@ -12,6 +12,7 @@ namespace RGBA
 	const int BLACK = 0xFF000000;
 	const int BACK_WINDOW = 0xDF202020;
 	const int TITLE_WINDOW = 0xDF294A7A;
+	const int TITLE_SELECTED_WINDOW = 0xDF597AAA;
 	const int CLOSE_WINDOW = 0xDFDD0000;
 	const int CLOSE_WINDOW_HOVER = 0xFFFF0000;
 	const int BUTTON = 0xDF274972;
@@ -50,7 +51,7 @@ class Text
 		void addTriangle( int spec, std::array<int, 2> a, std::array<int, 2> b, std::array<int, 2> c, int color );
 		void addQuads( int spec, int posX, int posY, int width, int height, int color );
 		int textWidth( int font_size, std::string str );
-        void addText( int posX, int posY, int font_size, int color, std::string str );
+        void addText( int posX, int posY, int font_size, int color, std::string str, int limit = 0x7FFFFFFF );
 		void toScreen( void );
 };
 
