@@ -2,8 +2,6 @@
 # define DISPLAY_HPP
 
 # include "Gui.hpp"
-# include <array>
-# include <vector>
 
 # define GOLDEN_RATIO 1.6180339887
 # define WIN_HEIGHT 600
@@ -39,6 +37,8 @@ typedef struct s_core {
 	float _mass; // NONE=??, ATTRACTION>, REPULSION<0
 	float _minTheta, _maxTheta;
 	float _minSpeed, _maxSpeed, _terminalVelocity;
+	std::array<float, 4> _birthCol = {1.0f, 0.0f, 0.0f, 1.0f}, _deathCol = {0.0f, 0.0f, 1.0f, 0.0f};
+	std::array<float, 3> _speedCol = {0.5f, 1.0f, 0.5f};
 }				t_core;
 
 class Display
@@ -47,7 +47,7 @@ class Display
 		GLFWwindow *_window;
 		GLuint _shaderUpdateProgram, _shaderRenderProgram;
 		GLint _uniDeltaT, _uniOrigin, _uniGravity, _uniPolarity, _uniMinTheta, _uniMaxTheta, _uniMinSpeed, _uniMaxSpeed, _uniTerminalVelocity;
-		GLint _uniWinPos, _uniWinSize, _uniRMinSpeed, _uniRMaxSpeed;
+		GLint _uniWinPos, _uniWinSize, _uniRMinSpeed, _uniRMaxSpeed, _uniBirthColor, _uniDeathColor, _uniSpeedColor;
 		GLint _winWidth, _winHeight;
 		std::vector<t_particle> _particles;
 		std::array<float, 30> _gravity;

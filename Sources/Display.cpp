@@ -121,6 +121,9 @@ void Display::setup_communication_shaders( void )
 	_uniWinSize = glGetUniformLocation(_shaderRenderProgram, "winSize");
 	_uniRMinSpeed = glGetUniformLocation(_shaderRenderProgram, "minSpeed");
 	_uniRMaxSpeed = glGetUniformLocation(_shaderRenderProgram, "maxSpeed");
+	_uniBirthColor = glGetUniformLocation(_shaderRenderProgram, "birthColor");
+	_uniDeathColor = glGetUniformLocation(_shaderRenderProgram, "deathColor");
+	_uniSpeedColor = glGetUniformLocation(_shaderRenderProgram, "speedColor");
 
 	check_glstate("\nCommunication with shader program successfully established", true);
 }
@@ -288,6 +291,9 @@ void Display::handleInputs( void )
 			_gui->addSliderFloat("Terminal Speed", &c._terminalVelocity, 10, 1500);
 			_gui->addSliderFloat("Min Theta", &c._minTheta, -3.14159, 3.14159);
 			_gui->addSliderFloat("Max Theta", &c._maxTheta, -3.14159, 3.14159);
+			_gui->addColor("birth color", {&c._birthCol[0], &c._birthCol[1], &c._birthCol[2], &c._birthCol[3]});
+			_gui->addColor("death color", {&c._deathCol[0], &c._deathCol[1], &c._deathCol[2], &c._deathCol[3]});
+			_gui->addColor("speed color", {&c._speedCol[0], &c._speedCol[1], &c._speedCol[2], NULL});
 		}
 	}
 }
@@ -348,6 +354,9 @@ void Display::render( double deltaTime )
 		// glUniform1f(_uniWinZoom, 1.0f);
 		glUniform1f(_uniRMinSpeed, c._minSpeed / 2);
 		glUniform1f(_uniRMaxSpeed, c._terminalVelocity);
+		glUniform4fv(_uniBirthColor, 1, &c._birthCol[0]);
+		glUniform4fv(_uniDeathColor, 1, &c._deathCol[0]);
+		glUniform3fv(_uniSpeedColor, 1, &c._speedCol[0]);
 
 		glDrawArrays(GL_POINTS, 0, num_part);
 	}

@@ -47,6 +47,15 @@ float gradient( float value, float start, float end, float grad_start, float gra
 	return (grad_start + progress * (grad_end - grad_start));
 }
 
+int rgbaFromVec( std::array<float, 4> color )
+{
+	int res = (static_cast<int>(color[0] * 255) & 0xFF) << 16;	// R
+	res += (static_cast<int>(color[1] * 255) & 0xFF) << 8;		// G
+	res += (static_cast<int>(color[2] * 255) & 0xFF);			// B
+	res += (static_cast<int>(color[3] * 255) & 0xFF) << 24;		// A
+	return (res);
+}
+
 std::string to_string_with_precision( const float value, const int precision, const bool zero_allowed )
 {
     std::ostringstream out;

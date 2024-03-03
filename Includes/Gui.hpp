@@ -11,7 +11,7 @@ namespace CONTAINER
 		SLIDER_INT,		// mod ptr to int linearly within given range
 		SLIDER_FLOAT,	// mod ptr to float linearly within given range
 		ENUM,			// (call fct | mod ptr to int) on each press
-		COLOR
+		COLOR, 			// mod RBBA ptrs in float range [0-1], but display them in int range [0-255]
 	};
 }
 
@@ -25,6 +25,8 @@ typedef struct s_container {
 	float frange_start = 0.0f, frange_end = 1.0f;
 	int *enu = NULL, enu_index = 0;
 	std::vector<std::string> enu_list = {};
+	int selection = -1;
+	std::array<float*, 4> _color = {NULL, NULL, NULL, NULL};
 }				t_container;
 
 const int title_height = 20;
@@ -42,7 +44,7 @@ class Gui
 	private:
 		GLuint _shaderProgram;
 		int _selection, _highlighted_window, _mouse_button, _winWidth, _winHeight;
-		bool _moving_window, _resize_window, _moving_slider, _closing_window;
+		bool _moving_window, _resize_window, _moving_slider, _moving_color, _closing_window;
 		std::vector<t_window> _content;
 		std::vector<int> _draw_order;
 		GLFWcursor *_cursor;
@@ -72,6 +74,7 @@ class Gui
 		void addSliderInt( std::string name, int *ptr, int minRange = 0, int maxRange = 10 );
 		void addSliderFloat( std::string name, float *ptr, float minRange = 0.0f, float maxRange = 1.0f );
 		void addEnum( std::vector<std::string> enu_list, int *iptr, void (*foo_ptr)( int ) = NULL );
+		void addColor( std::string name, std::array<float*, 4> color );
 };
 
 #endif

@@ -4,7 +4,6 @@
 # include "utils.hpp"
 
 # include <vector>
-# include <array>
 
 namespace RGBA
 {

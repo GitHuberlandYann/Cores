@@ -1,8 +1,8 @@
 #include "Gui.hpp"
 
 Gui::Gui( void ) : _selection(-1), _highlighted_window(-1), _mouse_button(GLFW_RELEASE),
-	_moving_window(false), _resize_window(false), _moving_slider(false), _closing_window(false),
-	_cursor(NULL)
+	_moving_window(false), _resize_window(false), _moving_slider(false), _moving_color(false),
+	_closing_window(false), _cursor(NULL)
 {
 	_text = new Text();
 }
@@ -47,6 +47,30 @@ void Gui::setCursorPosWindow( t_window &win, int posX, int posY )
 						return ;
 					}
 					break ;
+				case CONTAINER::COLOR:
+					int div = (cont._color[3]) ? 4 : 3, width = (win.size[0] / 2 - ((div == 4) ? 30 : 20)) / div;
+					if (inRectangle(posX, posY, 10, title_height * 1.5f * (index - 2), width, title_height)) {
+						win.selection = index;
+						cont.selection = 0;
+						win.offset[0] = posX + win.pos[0];
+						return ;
+					} else if (inRectangle(posX, posY, 20 + width, title_height * 1.5f * (index - 2), width, title_height)) {
+						win.selection = index;
+						cont.selection = 1;
+						win.offset[0] = posX + win.pos[0];
+						return ;
+					} else if (inRectangle(posX, posY, 30 + 2 * width, title_height * 1.5f * (index - 2), width, title_height)) {
+						win.selection = index;
+						cont.selection = 2;
+						win.offset[0] = posX + win.pos[0];
+						return ;
+					} else if (div == 4 && inRectangle(posX, posY, 40 + 3 * width, title_height * 1.5f * (index - 2), width, title_height)) {
+						win.selection = index;
+						cont.selection = 3;
+						win.offset[0] = posX + win.pos[0];
+						return ;
+					}
+					break ;
 			}
 			++index;
 		}
@@ -67,30 +91,50 @@ void Gui::renderWindow( t_window &win, int windex )
 	std::string str;
 	for (auto &cont : win.content) {
 		if (title_height * 1.5f * (index - 2) + title_height > win.size[1] - 10) return ;
+		int posY = win.pos[1] + title_height * 1.5f * (index - 2);
 		switch (cont.type) {
 			case CONTAINER::TEXT:
-				_text->addText(win.pos[0] + 10, win.pos[1] + title_height * 1.5f * (index - 2), 12, RGBA::WHITE, cont.name, win.size[0] - 30);
+				_text->addText(win.pos[0] + 10, posY, 12, RGBA::WHITE, cont.name, win.size[0] - 30);
 				break ;
 			case CONTAINER::SLIDER_INT:
-				_text->addQuads(0, win.pos[0] + 10, win.pos[1] + title_height * 1.5f * (index - 2), win.size[0] / 2, title_height, RGBA::BUTTON);
+				_text->addQuads(0, win.pos[0] + 10, posY, win.size[0] / 2, title_height, RGBA::BUTTON);
 				_text->addQuads(0, win.pos[0] + 10 + (win.size[0] / 2 - title_height + 8) * getPercent(*cont.islider, cont.irange_start, cont.irange_end),
-						win.pos[1] + title_height * 1.5f * (index - 2) + 2, title_height - 8, title_height - 4, (win.selection == index) ? RGBA::SLIDER_HOVER : RGBA::SLIDER);
+						posY + 2, title_height - 8, title_height - 4, (win.selection == index) ? RGBA::SLIDER_HOVER : RGBA::SLIDER);
 				str = std::to_string(*cont.islider);
-				_text->addText(win.pos[0] + 10 + win.size[0] / 4 - _text->textWidth(12, str) / 2, win.pos[1] + title_height * 1.5f * (index - 2) + 4, 12, RGBA::WHITE, str);
-				_text->addText(win.pos[0] + win.size[0] / 2 + 20, win.pos[1] + title_height * 1.5f * (index - 2) + 4, 12, RGBA::WHITE, cont.name, win.size[0] / 2 - 30);
+				_text->addText(win.pos[0] + 10 + win.size[0] / 4 - _text->textWidth(12, str) / 2, posY + 4, 12, RGBA::WHITE, str);
+				_text->addText(win.pos[0] + win.size[0] / 2 + 20, posY + 4, 12, RGBA::WHITE, cont.name, win.size[0] / 2 - 30);
 				break ;
 			case CONTAINER::SLIDER_FLOAT:
-				_text->addQuads(0, win.pos[0] + 10, win.pos[1] + title_height * 1.5f * (index - 2), win.size[0] / 2, title_height, RGBA::BUTTON);
+				_text->addQuads(0, win.pos[0] + 10, posY, win.size[0] / 2, title_height, RGBA::BUTTON);
 				_text->addQuads(0, win.pos[0] + 10 + (win.size[0] / 2 - title_height + 8) * getPercent(*cont.fslider, cont.frange_start, cont.frange_end),
-						win.pos[1] + title_height * 1.5f * (index - 2) + 2, title_height - 8, title_height - 4, (win.selection == index) ? RGBA::SLIDER_HOVER : RGBA::SLIDER);
+						posY + 2, title_height - 8, title_height - 4, (win.selection == index) ? RGBA::SLIDER_HOVER : RGBA::SLIDER);
 				str = to_string_with_precision(*cont.fslider, 2, false);
-				_text->addText(win.pos[0] + 10 + win.size[0] / 4 - _text->textWidth(12, str) / 2, win.pos[1] + title_height * 1.5f * (index - 2) + 4, 12, RGBA::WHITE, str);
-				_text->addText(win.pos[0] + win.size[0] / 2 + 20, win.pos[1] + title_height * 1.5f * (index - 2) + 4, 12, RGBA::WHITE, cont.name, win.size[0] / 2 - 30);
+				_text->addText(win.pos[0] + 10 + win.size[0] / 4 - _text->textWidth(12, str) / 2, posY + 4, 12, RGBA::WHITE, str);
+				_text->addText(win.pos[0] + win.size[0] / 2 + 20, posY + 4, 12, RGBA::WHITE, cont.name, win.size[0] / 2 - 30);
 				break ;
 			case CONTAINER::ENUM:
-				_text->addQuads(0, win.pos[0] + 10, win.pos[1] + title_height * 1.5f * (index - 2), win.size[0] - 20, title_height, (win.selection == index) ? RGBA::SLIDER_HOVER : RGBA::BUTTON);
+				_text->addQuads(0, win.pos[0] + 10, posY, win.size[0] - 20, title_height, (win.selection == index) ? RGBA::SLIDER_HOVER : RGBA::BUTTON);
 				str = cont.enu_list[cont.enu_index];
-				_text->addText(win.pos[0] + (win.size[0] - _text->textWidth(12, str)) / 2, win.pos[1] + title_height * 1.5f * (index - 2) + 4, 12, RGBA::WHITE, str);
+				_text->addText(win.pos[0] + (win.size[0] - _text->textWidth(12, str)) / 2, posY + 4, 12, RGBA::WHITE, str);
+				break ;
+			case CONTAINER::COLOR:
+				int div = (cont._color[3]) ? 4 : 3, width = (win.size[0] / 2 - ((div == 4) ? 30 : 20)) / div;
+				_text->addQuads(0, win.pos[0] + 10, posY, width, title_height, RGBA::BUTTON);
+				str = std::to_string(static_cast<int>(*cont._color[0] * 255));
+				_text->addText(win.pos[0] + 10 + (width - _text->textWidth(12, str)) / 2, posY + 4, 12, RGBA::WHITE, str);
+				_text->addQuads(0, win.pos[0] + 20 + width, posY, width, title_height, RGBA::BUTTON);
+				str = std::to_string(static_cast<int>(*cont._color[1] * 255));
+				_text->addText(win.pos[0] + 20 + width + (width - _text->textWidth(12, str)) / 2, posY + 4, 12, RGBA::WHITE, str);
+				_text->addQuads(0, win.pos[0] + 30 + 2 * width, posY, width, title_height, RGBA::BUTTON);
+				str = std::to_string(static_cast<int>(*cont._color[2] * 255));
+				_text->addText(win.pos[0] + 30 + 2 * width + (width - _text->textWidth(12, str)) / 2, posY + 4, 12, RGBA::WHITE, str);
+				if (div == 4) {
+					_text->addQuads(0, win.pos[0] + 40 + 3 * width, posY, width, title_height, RGBA::BUTTON);
+					str = std::to_string(static_cast<int>(*cont._color[3] * 255));
+					_text->addText(win.pos[0] + 40 + 3 * width + (width - _text->textWidth(12, str)) / 2, posY + 4, 12, RGBA::WHITE, str);
+				}
+				_text->addQuads(0, win.pos[0] + win.size[0] / 2 + 20, posY, title_height, title_height, rgbaFromVec({*cont._color[0], *cont._color[1], *cont._color[2], (div == 4) ? *cont._color[3] : 1.0f}));
+				_text->addText(win.pos[0] + win.size[0] / 2 + 30 + title_height, posY + 4, 12, RGBA::WHITE, cont.name, win.size[0] / 2 - 40 - title_height);
 				break ;
 		}
 		++index;
@@ -104,6 +148,10 @@ void Gui::renderWindow( t_window &win, int windex )
 
 void Gui::setWindowSize( int width, int height )
 {
+	for (auto &win : _content) {
+		win.pos[0] *= static_cast<float>(width) / _winWidth;
+		win.pos[1] *= static_cast<float>(height) / _winHeight;
+	}
 	_winWidth = width;
 	_winHeight = height;
 	_text->setWindowSize(width, height);
@@ -143,6 +191,15 @@ void Gui::setCursorPos( double posX, double posY )
 		} else {
 			*cont.fslider = gradient(posX, win.pos[0] + 10, win.pos[0] + 10 + win.size[0] / 2, cont.frange_start, cont.frange_end);
 		}
+		return ;
+	} else if (_moving_color) {
+		t_window &win = _content[_selection];
+		int diff = posX - win.offset[0];
+		win.offset[0] = posX;
+		t_container &cont = win.content[win.selection - 3];
+		*cont._color[cont.selection] += diff / 200.0f;
+		if (*cont._color[cont.selection] < 0) *cont._color[cont.selection] = 0;
+		if (*cont._color[cont.selection] > 1.0f) *cont._color[cont.selection] = 1.0f;
 		return ;
 	}
 
@@ -187,6 +244,9 @@ void Gui::setMouseButton( GLFWwindow *window, int button, int action )
 						case CONTAINER::SLIDER_FLOAT:
 							_moving_slider = true;
 							break ;
+						case CONTAINER::COLOR:
+							_moving_color = true;
+							break ;
 						case CONTAINER::ENUM:
 							t_container &cont = win.content[win.selection - 3];
 							++cont.enu_index;
@@ -204,6 +264,7 @@ void Gui::setMouseButton( GLFWwindow *window, int button, int action )
 			_moving_window = false;
 			_resize_window = false;
 			_moving_slider = false;
+			_moving_color = false;
 			_closing_window = false;
 		}
 	}
@@ -321,4 +382,11 @@ void Gui::addEnum( std::vector<std::string> enu_list, int *iptr, void (*foo_ptr)
 	if (_content.empty()) return ;
 
 	_content.back().content.push_back({CONTAINER::ENUM, "", foo_ptr, NULL, 0, 0, NULL, 0, 0, iptr, (iptr) ? *iptr : 0, enu_list});
+}
+
+void Gui::addColor( std::string name, std::array<float*, 4> color )
+{
+	if (_content.empty()) return ;
+
+	_content.back().content.push_back({CONTAINER::COLOR, name, NULL, NULL, 0, 0, NULL, 0, 0, NULL, 0, {}, -1, color});
 }
