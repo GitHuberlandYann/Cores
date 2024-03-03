@@ -28,6 +28,8 @@ Pressing 123456789 also opens a custom ui window to control the core you selecte
 
 The cores' positions are absolute, meaning that when you drag the window accross the screen, the cores don't move along.
 
+To see current fps and other infos, press F3.
+
 ## Libraries
 * [GLFW](https://github.com/glfw/glfw.git) is an Open Source, multi-platform library for OpenGL, OpenGL ES and Vulkan application development. It provides a simple, platform-independent API for creating windows, contexts and surfaces, reading input, handling events, etc.
 * [GLEW](https://github.com/nigels-com/glew.git) provides efficient run-time mechanisms for determining which OpenGL extensions are supported on the target platform. I am using the [latest stable version.](https://github.com/nigels-com/glew/releases/tag/glew-2.2.0)

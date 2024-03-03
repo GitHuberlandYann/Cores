@@ -121,6 +121,8 @@ void Display::setup_communication_shaders( void )
 	_uniWinSize = glGetUniformLocation(_shaderRenderProgram, "winSize");
 	_uniRMinSpeed = glGetUniformLocation(_shaderRenderProgram, "minSpeed");
 	_uniRMaxSpeed = glGetUniformLocation(_shaderRenderProgram, "maxSpeed");
+	_uniBirthSize = glGetUniformLocation(_shaderRenderProgram, "birthSize");
+	_uniDeathSize = glGetUniformLocation(_shaderRenderProgram, "deathSize");
 	_uniBirthColor = glGetUniformLocation(_shaderRenderProgram, "birthColor");
 	_uniDeathColor = glGetUniformLocation(_shaderRenderProgram, "deathColor");
 	_uniSpeedColor = glGetUniformLocation(_shaderRenderProgram, "speedColor");
@@ -194,7 +196,7 @@ void Display::add_core( void )
 		glEnableVertexAttribArray(VELATTRIB);
 		glVertexAttribPointer(VELATTRIB, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GL_FLOAT), (void *)(4 * sizeof(GL_FLOAT)));
 			
-		check_glstate("setup vao " + std::to_string(i) + " of core " + std::to_string(index), true);
+		check_glstate("setup vao " + std::to_string(i) + " of core " + std::to_string(index), false);
 	}
 }
 
@@ -252,7 +254,7 @@ void Display::handleInputs( void )
 		&& glfwGetKey(_window, GLFW_KEY_3) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_4) == GLFW_RELEASE
 		&& glfwGetKey(_window, GLFW_KEY_5) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_6) == GLFW_RELEASE
 		&& glfwGetKey(_window, GLFW_KEY_7) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_8) == GLFW_RELEASE
-		&& glfwGetKey(_window, GLFW_KEY_9) == GLFW_RELEASE) {
+		&& glfwGetKey(_window, GLFW_KEY_9) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_F3) == GLFW_RELEASE) {
 		_input_released = true;
 	} else if (_input_released) {
 		_input_released = false;
@@ -275,13 +277,21 @@ void Display::handleInputs( void )
 			core_loc = 7;
 		} else if (glfwGetKey(_window, GLFW_KEY_9) == GLFW_PRESS) {
 			core_loc = 8;
+		} else if (glfwGetKey(_window, GLFW_KEY_F3) == GLFW_PRESS) {
+			if (_gui->createWindow("Debug 0", {20, 20}, {270, 150})) {
+				_gui->addVarFloat(&_deltaTime, "ms this frame");
+				_gui->addVarInt(&_fps, "FPS");
+				_gui->addVarFloat(&_nb_parts, "particles");
+				_gui->addVarInt(&_current_core, "current core is", false);
+			}
+			return ;
 		}
 		if (core_loc == _cores.size()) {
 			add_core();
 			_current_core = core_loc;
 		} else if (core_loc < _cores.size()) _current_core = core_loc;
 		else return ;
-		if (_gui->createWindow("Core " + std::to_string(core_loc), {_winWidth - 220, 20})) {
+		if (_gui->createWindow("Core " + std::to_string(core_loc))) {
 			t_core &c = _cores[core_loc];
 			_gui->addSliderFloat("Mass", &_gravity[core_loc * 3 + 2], 1, 10);
 			_gui->addEnum({"ATTRACTION", "REPULSION"}, &_polarity[core_loc]);
@@ -289,6 +299,8 @@ void Display::handleInputs( void )
 			_gui->addSliderFloat("Min Speed", &c._minSpeed, 1, 300);
 			_gui->addSliderFloat("Max Speed", &c._maxSpeed, 10, 300);
 			_gui->addSliderFloat("Terminal Speed", &c._terminalVelocity, 10, 1500);
+			_gui->addSliderInt("birth size", &c._birthSize, 0, 10);
+			_gui->addSliderInt("death size", &c._deathSize, 0, 10);
 			_gui->addSliderFloat("Min Theta", &c._minTheta, -3.14159, 3.14159);
 			_gui->addSliderFloat("Max Theta", &c._maxTheta, -3.14159, 3.14159);
 			_gui->addColor("birth color", {&c._birthCol[0], &c._birthCol[1], &c._birthCol[2], &c._birthCol[3]});
@@ -298,19 +310,19 @@ void Display::handleInputs( void )
 	}
 }
 
-void Display::render( double deltaTime )
+void Display::render( void )
 {
 	size_t index = 0;
 	for (auto &c : _cores) {
 		// _gui->addText(c._origin[0] - _winPos[0], c._origin[1] - _winPos[1], 24, RGBA::WHITE, "Debug");
 		int num_part = static_cast<int>(c._born_parts);
 		if (num_part < c._num_parts) {
-			c._born_parts += 1000 * deltaTime; // birth rate
+			c._born_parts += _deltaTime; // birth rate
 			if (c._born_parts > c._num_parts) {
 				c._born_parts = c._num_parts;
 			}
 		} else if (num_part > c._num_parts) {
-			c._born_parts -= 1000 * deltaTime; // death rate
+			c._born_parts -= _deltaTime; // death rate
 			if (c._born_parts < 0) {
 				c._born_parts = 0;
 			}
@@ -318,7 +330,7 @@ void Display::render( double deltaTime )
 
 		glUseProgram(_shaderUpdateProgram);
 
-		glUniform1f(_uniDeltaT, deltaTime);
+		glUniform1f(_uniDeltaT, _deltaTime / 1000);
 		glUniform2f(_uniOrigin, c._origin[0], c._origin[1]);
 		_gravity[index * 3] = 1000000; // disable own gravity
 		glUniform3fv(_uniGravity, 10, &_gravity[0]);
@@ -354,6 +366,8 @@ void Display::render( double deltaTime )
 		// glUniform1f(_uniWinZoom, 1.0f);
 		glUniform1f(_uniRMinSpeed, c._minSpeed / 2);
 		glUniform1f(_uniRMaxSpeed, c._terminalVelocity);
+		glUniform1f(_uniBirthSize, static_cast<float>(c._birthSize));
+		glUniform1f(_uniDeathSize, static_cast<float>(c._deathSize));
 		glUniform4fv(_uniBirthColor, 1, &c._birthCol[0]);
 		glUniform4fv(_uniDeathColor, 1, &c._deathCol[0]);
 		glUniform3fv(_uniSpeedColor, 1, &c._speedCol[0]);
@@ -387,7 +401,8 @@ void Display::main_loop( void )
 	check_glstate("setup done, entering main loop\n", true);
 
 	double lastTime = glfwGetTime(), previousFrame = lastTime - 0.5;
-	int nbFrames = 0, nbFramesLastSecond = 0;
+	int nbFrames = 0;
+	_fps = 0;
 
 	while (!glfwWindowShouldClose(_window)) {
 		if (glfwGetKey(_window, GLFW_KEY_BACKSPACE) == GLFW_PRESS) {
@@ -398,18 +413,18 @@ void Display::main_loop( void )
 		handleInputs();
 
 		double currentTime = glfwGetTime();
-		double deltaTime = currentTime - previousFrame;
+		_deltaTime = (currentTime - previousFrame) * 1000;
 		++nbFrames;
 		if (currentTime - lastTime >= 1.0) {
-			float nb_parts = 0;
-			for (size_t i = 0; i < _cores.size(); ++i) nb_parts += _cores[i]._born_parts;
-			std::cout << "FPS: " << nbFrames << ", " << nb_parts << " parts. current_core " << _current_core << "/" << _cores.size() << std::endl;
-			nbFramesLastSecond = nbFrames;
+			_nb_parts = 0;
+			for (size_t i = 0; i < _cores.size(); ++i) _nb_parts += _cores[i]._born_parts;
+			// std::cout << "FPS: " << nbFrames << ", " << _nb_parts << " parts. current_core " << _current_core << "/" << _cores.size() << std::endl;
+			_fps = nbFrames;
 			nbFrames = 0;
 			lastTime += 1.0;
 		}
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		render(deltaTime);
+		render();
 		_gui->render();
 		_current_core = _gui->getHighlightedWindow(_current_core);
 		glfwSwapBuffers(_window);

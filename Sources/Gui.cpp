@@ -96,6 +96,16 @@ void Gui::renderWindow( t_window &win, int windex )
 			case CONTAINER::TEXT:
 				_text->addText(win.pos[0] + 10, posY, 12, RGBA::WHITE, cont.name, win.size[0] - 30);
 				break ;
+			case CONTAINER::VAR_INT:
+				str = ((cont.var_first) ? std::to_string(*cont.islider) + ' ' + cont.name
+										: cont.name + ' ' + std::to_string(*cont.islider));
+				_text->addText(win.pos[0] + 10, posY, 12, RGBA::WHITE, str, win.size[0] - 30);
+				break ;
+			case CONTAINER::VAR_FLOAT:
+				str = ((cont.var_first) ? to_string_with_precision(*cont.fslider, 4) + ' ' + cont.name
+										: cont.name + ' ' + to_string_with_precision(*cont.fslider, 4));
+				_text->addText(win.pos[0] + 10, posY, 12, RGBA::WHITE, str, win.size[0] - 30);
+				break ;
 			case CONTAINER::SLIDER_INT:
 				_text->addQuads(0, win.pos[0] + 10, posY, win.size[0] / 2, title_height, RGBA::BUTTON);
 				_text->addQuads(0, win.pos[0] + 10 + (win.size[0] / 2 - title_height + 8) * getPercent(*cont.islider, cont.irange_start, cont.irange_end),
@@ -370,6 +380,19 @@ void Gui::addText( std::string name )
 	if (_content.empty()) return ;
 
 	_content.back().content.push_back({CONTAINER::TEXT, name});
+}
+
+void Gui::addVarInt( int *ptr, std::string name, bool var_first )
+{
+	if (_content.empty()) return ;
+
+	_content.back().content.push_back({CONTAINER::VAR_INT, name, NULL, ptr, 0, 0, NULL, 0, 0, NULL, 0, {}, 0, {NULL, NULL, NULL, NULL}, var_first});
+}
+void Gui::addVarFloat( float *ptr, std::string name , bool var_first )
+{
+	if (_content.empty()) return ;
+
+	_content.back().content.push_back({CONTAINER::VAR_FLOAT, name, NULL, NULL, 0, 0, ptr, 0, 0, NULL, 0, {}, 0, {NULL, NULL, NULL, NULL}, var_first});
 }
 
 void Gui::addSliderInt( std::string name, int *ptr, int minRange, int maxRange )

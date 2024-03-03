@@ -51,6 +51,7 @@ void main() {
 		}
 		if (length(n_velocity) > terminalVelocity) {
 			n_velocity = velocity;
+			// n_velocity = terminalVelocity * normalize(n_velocity);
 		}
 		Velocity = n_velocity;
 	}

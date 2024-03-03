@@ -39,6 +39,7 @@ typedef struct s_core {
 	float _minSpeed, _maxSpeed, _terminalVelocity;
 	std::array<float, 4> _birthCol = {1.0f, 0.0f, 0.0f, 1.0f}, _deathCol = {0.0f, 0.0f, 1.0f, 0.0f};
 	std::array<float, 3> _speedCol = {0.5f, 1.0f, 0.5f};
+	int _birthSize = 5, _deathSize = 0;
 }				t_core;
 
 class Display
@@ -47,7 +48,7 @@ class Display
 		GLFWwindow *_window;
 		GLuint _shaderUpdateProgram, _shaderRenderProgram;
 		GLint _uniDeltaT, _uniOrigin, _uniGravity, _uniPolarity, _uniMinTheta, _uniMaxTheta, _uniMinSpeed, _uniMaxSpeed, _uniTerminalVelocity;
-		GLint _uniWinPos, _uniWinSize, _uniRMinSpeed, _uniRMaxSpeed, _uniBirthColor, _uniDeathColor, _uniSpeedColor;
+		GLint _uniWinPos, _uniWinSize, _uniRMinSpeed, _uniRMaxSpeed, _uniBirthSize, _uniDeathSize, _uniBirthColor, _uniDeathColor, _uniSpeedColor;
 		GLint _winWidth, _winHeight;
 		std::vector<t_particle> _particles;
 		std::array<float, 30> _gravity;
@@ -55,7 +56,8 @@ class Display
 		std::array<int, 2> _winPos;
 		GLuint _texture;
 		t_state _state;
-		int _current_core;
+		int _current_core, _fps;
+		float _deltaTime, _nb_parts;
 		bool _input_released;
 		std::vector<t_core> _cores;
 		Gui *_gui;
@@ -68,7 +70,7 @@ class Display
 		void init_cores( int num_parts, float min_age, float max_age );
 
 		void handleInputs( void );
-		void render( double deltaTime );
+		void render( void );
 		void main_loop( void );
 
 	public:

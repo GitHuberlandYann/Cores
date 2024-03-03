@@ -7,6 +7,8 @@ namespace CONTAINER
 {
 	enum {
 		TEXT,			// quite explicit
+		VAR_INT,		// track and print var ptr to int
+		VAR_FLOAT,		// track and print var ptr to float
 		BUTTON,			// calls ptr_function when pressed
 		SLIDER_INT,		// mod ptr to int linearly within given range
 		SLIDER_FLOAT,	// mod ptr to float linearly within given range
@@ -27,6 +29,7 @@ typedef struct s_container {
 	std::vector<std::string> enu_list = {};
 	int selection = -1;
 	std::array<float*, 4> _color = {NULL, NULL, NULL, NULL};
+	bool var_first = true;
 }				t_container;
 
 const int title_height = 20;
@@ -67,10 +70,12 @@ class Gui
 		void render( void );
 
 		void writeText( int posX, int posY, int font_size, int color, std::string str );
-		bool createWindow( std::string title, std::array<int, 2> pos = {20, 20}, std::array<int, 2> size = {200, 300} );
+		bool createWindow( std::string title, std::array<int, 2> pos = {20, 20}, std::array<int, 2> size = {450, 420} );
 		void rmWindow( int index );
 		void putWindowOnTop( int index );
 		void addText( std::string name );
+		void addVarInt( int *ptr, std::string name, bool var_first = true );
+		void addVarFloat( float *ptr, std::string name , bool var_first = true );
 		void addSliderInt( std::string name, int *ptr, int minRange = 0, int maxRange = 10 );
 		void addSliderFloat( std::string name, float *ptr, float minRange = 0.0f, float maxRange = 1.0f );
 		void addEnum( std::vector<std::string> enu_list, int *iptr, void (*foo_ptr)( int ) = NULL );
