@@ -6,6 +6,8 @@ void window_size_callback( GLFWwindow *window, int width, int height );
 void window_pos_callback( GLFWwindow *window, int posX, int posY );
 void cursor_pos_callback( GLFWwindow *window, double posX, double posY );
 void mouse_button_callback( GLFWwindow *window, int button, int action, int mods );
+void gui_randomize_callback( int index );
+void rm_core_callback( int index );
 void error_callback( int error, const char *msg );
 
 #endif

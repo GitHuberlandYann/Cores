@@ -7,7 +7,6 @@ Display::Display( void )
 		_input_released(true)
 {
 	_gui = new Gui();
-	_cores.reserve(9);
 }
 
 Display::~Display( void )
@@ -151,17 +150,14 @@ void Display::load_texture( void )
 	check_glstate("Texture rgNoise done", true);
 }
 
-void Display::add_core( void )
+void Display::add_core( int index )
 {
-	size_t index = _cores.size();
-	if (index >= 9) {
-		std::cout << "can't add new core, limit of 9 reached." << std::endl;
-		return ;
-	}
-	t_core core;
-	_cores.push_back(core);
-	t_core &c = _cores.back();
+	if (index < 0 || index >= 9) return ;
+	t_core &c = _cores[index];
 
+	if (!c._destoyed) return ;
+	c._destoyed = false;
+	c._visible = false;
 	c._num_parts = NUM_PARTS;
 	c._origin = {static_cast<float>(_winPos[0] + _winWidth / 2), static_cast<float>(_winPos[1] + _winHeight / 2)};
 	c._mass = 6.6989; //==5000000;
@@ -174,6 +170,11 @@ void Display::add_core( void )
 	c._minSpeed = 50.0f;
 	c._maxSpeed = 60.0f;
 	c._terminalVelocity = 300.0f;
+	c._birthCol = {1.0f, 0.0f, 0.0f, 1.0f};
+	c._deathCol = {0.0f, 0.0f, 1.0f, 0.0f};
+	c._speedCol = {0.5f, 1.0f, 0.5f};
+	c._birthSize = 5;
+	c._deathSize = 0;
 
 	glGenVertexArrays(2, c._vaos);
 	glGenBuffers(2, c._vbos);
@@ -212,10 +213,8 @@ void Display::init_cores( int num_parts, float min_age, float max_age )
 
 	glfwGetWindowPos(_window, &_winPos[0], &_winPos[1]);
 
-	int index = 0;
-	for (; index < 1; ++index) {
-		add_core();
-	}
+	add_core(0);
+	int index = 1;
 	for (; index < 9; ++index) {
 		_gravity[index * 3 + 0] = 1000000;
 		_gravity[index * 3 + 1] = 0;
@@ -278,20 +277,21 @@ void Display::handleInputs( void )
 		} else if (glfwGetKey(_window, GLFW_KEY_9) == GLFW_PRESS) {
 			core_loc = 8;
 		} else if (glfwGetKey(_window, GLFW_KEY_F3) == GLFW_PRESS) {
-			if (_gui->createWindow("Debug 0", {20, 20}, {270, 150})) {
+			if (_gui->createWindow(-1, "Debug window", {20, 20}, {270, 150})) {
 				_gui->addVarFloat(&_deltaTime, "ms this frame");
 				_gui->addVarInt(&_fps, "FPS");
 				_gui->addVarFloat(&_nb_parts, "particles");
 				_gui->addVarInt(&_current_core, "current core is", false);
+				_gui->addColor("background",  {&_backCol[0], &_backCol[1], &_backCol[2], NULL});
+				_gui->addText("Cursor:");
+				_gui->addSliderFloat("Mass", &_gravity[29], 1, 10);
+				_gui->addEnum({"ATTRACTION", "REPULSION"}, &_polarity[9]);
 			}
 			return ;
 		}
-		if (core_loc == _cores.size()) {
-			add_core();
-			_current_core = core_loc;
-		} else if (core_loc < _cores.size()) _current_core = core_loc;
-		else return ;
-		if (_gui->createWindow("Core " + std::to_string(core_loc))) {
+		add_core(core_loc);
+		_current_core = core_loc;
+		if (_gui->createWindow(core_loc, "Core " + std::to_string(core_loc + 1))) {
 			t_core &c = _cores[core_loc];
 			_gui->addSliderFloat("Mass", &_gravity[core_loc * 3 + 2], 1, 10);
 			_gui->addEnum({"ATTRACTION", "REPULSION"}, &_polarity[core_loc]);
@@ -306,23 +306,30 @@ void Display::handleInputs( void )
 			_gui->addColor("birth color", {&c._birthCol[0], &c._birthCol[1], &c._birthCol[2], &c._birthCol[3]});
 			_gui->addColor("death color", {&c._deathCol[0], &c._deathCol[1], &c._deathCol[2], &c._deathCol[3]});
 			_gui->addColor("speed color", {&c._speedCol[0], &c._speedCol[1], &c._speedCol[2], NULL});
+			_gui->addButton("RANDOMIZE", gui_randomize_callback);
+			_gui->addBool("visible", &c._visible);
+			_gui->addButton("DESTROY", rm_core_callback, NULL, core_loc);
 		}
 	}
 }
 
 void Display::render( void )
 {
-	size_t index = 0;
+	size_t index = -1;
 	for (auto &c : _cores) {
-		// _gui->addText(c._origin[0] - _winPos[0], c._origin[1] - _winPos[1], 24, RGBA::WHITE, "Debug");
+		++index;
+		if (c._destoyed) continue ;
+		if (c._visible) {
+			_gui->writeText(c._origin[0] - _winPos[0] + 10, c._origin[1] - _winPos[1], 12, RGBA::WHITE, "Core " + std::to_string(index + 1));
+		}
 		int num_part = static_cast<int>(c._born_parts);
 		if (num_part < c._num_parts) {
-			c._born_parts += _deltaTime; // birth rate
+			c._born_parts += 4 * _deltaTime; // birth rate
 			if (c._born_parts > c._num_parts) {
 				c._born_parts = c._num_parts;
 			}
 		} else if (num_part > c._num_parts) {
-			c._born_parts -= _deltaTime; // death rate
+			c._born_parts -= 4 * _deltaTime; // death rate
 			if (c._born_parts < 0) {
 				c._born_parts = 0;
 			}
@@ -335,7 +342,6 @@ void Display::render( void )
 		_gravity[index * 3] = 1000000; // disable own gravity
 		glUniform3fv(_uniGravity, 10, &_gravity[0]);
 		_gravity[index * 3] = c._origin[0]; // enable own gravity back for next cores
-		++index;
 		glUniform1iv(_uniPolarity, 10, &_polarity[0]);
 		glUniform1f(_uniMinTheta, c._minTheta);
 		glUniform1f(_uniMaxTheta, c._maxTheta);
@@ -388,7 +394,6 @@ void Display::main_loop( void )
 	glEnable(GL_BLEND);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glfwSwapInterval(1);
-	glClearColor(0, 0, 0, 1.0f);
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
 	set_display_callback(this, _gui);
@@ -417,12 +422,14 @@ void Display::main_loop( void )
 		++nbFrames;
 		if (currentTime - lastTime >= 1.0) {
 			_nb_parts = 0;
-			for (size_t i = 0; i < _cores.size(); ++i) _nb_parts += _cores[i]._born_parts;
+			for (size_t i = 0; i < 9; ++i) 
+				if (!_cores[i]._destoyed) _nb_parts += _cores[i]._born_parts;
 			// std::cout << "FPS: " << nbFrames << ", " << _nb_parts << " parts. current_core " << _current_core << "/" << _cores.size() << std::endl;
 			_fps = nbFrames;
 			nbFrames = 0;
 			lastTime += 1.0;
 		}
+		glClearColor(_backCol[0], _backCol[1], _backCol[2], 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		render();
 		_gui->render();
@@ -447,6 +454,14 @@ void Display::setWindowSize( int width, int height )
 void Display::setWindowPos( int posX, int posY )
 {
 	_winPos = {posX, posY};
+}
+
+void Display::rmCore( int index )
+{
+	if (index < 0 || index >= 9) return ;
+
+	_cores[index]._destoyed = true;
+	_gravity[index * 3] = 1000000;
 }
 
 void Display::start( void )

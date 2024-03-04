@@ -29,7 +29,7 @@ typedef struct s_state {
 }				t_state;
 
 typedef struct s_core {
-	// bool _visible;
+	bool _destoyed = true, _visible = false;
 	GLuint _vaos[2], _vbos[2];
 	float _born_parts = 0;
 	int _num_parts;
@@ -53,20 +53,21 @@ class Display
 		std::vector<t_particle> _particles;
 		std::array<float, 30> _gravity;
 		std::array<int, 10> _polarity;
+		std::array<float, 3> _backCol = {0.0f, 0.0f, 0.0f};
 		std::array<int, 2> _winPos;
 		GLuint _texture;
 		t_state _state;
 		int _current_core, _fps;
 		float _deltaTime, _nb_parts;
 		bool _input_released;
-		std::vector<t_core> _cores;
+		std::array<t_core, 9> _cores;
 		Gui *_gui;
 
 		void setup_window( void );
 		void create_shaders( void );
 		void setup_communication_shaders( void );
 		void load_texture( void );
-		void add_core( void );
+		void add_core( int index );
 		void init_cores( int num_parts, float min_age, float max_age );
 
 		void handleInputs( void );
@@ -79,6 +80,7 @@ class Display
 
 		void setWindowSize( int width, int height );
 		void setWindowPos( int posX, int posY );
+		void rmCore( int index );
 
 		void start( void );
 };

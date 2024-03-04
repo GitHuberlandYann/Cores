@@ -52,6 +52,23 @@ void mouse_button_callback( GLFWwindow *window, int button, int action, int mods
 	}
 }
 
+void gui_randomize_callback( int index )
+{
+	if (gui) {
+		gui->randomizeWindowAt(index);
+	}
+}
+
+void rm_core_callback( int index )
+{
+	if (gui) {
+		gui->rmWindow(index);
+	}
+	if (display) {
+		display->rmCore(index);
+	}
+}
+
 void error_callback( int error, const char *msg )
 {
     std::string s;
