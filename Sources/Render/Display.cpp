@@ -161,11 +161,9 @@ void Display::add_core( int index )
 	c._destroyed = false;
 	c._visible = false;
 	c._num_parts = NUM_PARTS;
-	c._origin = {static_cast<float>(_winPos[0] + _winWidth / 2), static_cast<float>(_winPos[1] + _winHeight / 2)};
-	c._mass = 6.6989; //==5000000;
-	_gravity[index * 3 + 0] = c._origin[0];
-	_gravity[index * 3 + 1] = c._origin[1];
-	_gravity[index * 3 + 2] = c._mass; // we store power of 10, so mass of 1 is 10, 2 is 100, ...
+	_gravity[index * 3 + 0] = _winPos[0] + _winWidth / 2;
+	_gravity[index * 3 + 1] = _winPos[1] + _winHeight / 2;
+	_gravity[index * 3 + 2] = 6.6989f; // we store power of 10, so mass of 1 is 10, 2 is 100, ...
 	_polarity[index] = POLARITY::ATTRACTION;
 	c._minTheta = -3.1415f;
 	c._maxTheta = 3.1415f;
@@ -210,7 +208,7 @@ void Display::init_cores( int num_parts, float min_age, float max_age )
 	for (int i = 0; i < num_parts; ++i) {
 		float life = min_age + Random::randomFloat(seed) * (max_age - min_age);
 
-		_particles.push_back({{0, 0}, life + 1, life, {0, 0}});
+		_particles.push_back({{0, 0}, Random::randomFloat(seed) * life, life, {0, 0}});
 	}
 
 	glfwGetWindowPos(_window, &_winPos[0], &_winPos[1]);
@@ -237,19 +235,16 @@ void Display::init_cores( int num_parts, float min_age, float max_age )
 void Display::updateCore( int index, void *data )
 {
 	// std::cout << "update Core " << index << std::endl;
-	if (index < 0 || index >= 9) return ;
-
-	t_core &c = _cores[index];
-	memmove(&c._destroyed, &static_cast<char*>(data)[8], 92);
 	// for (int i = 0; i < 90; ++i) {
 	// 	std::cout << static_cast<int>(static_cast<char*>(data)[i]) << '|';
 	// }
 	// std::cout << std::endl;
-	_gravity[index * 3 + 0] = c._origin[0];
-	_gravity[index * 3 + 1] = c._origin[1];
-	_gravity[index * 3 + 2] = c._mass;
-	// std::cout << "core " << index << " destroyed " << _cores[index]._destroyed << " at pos " << _cores[index]._origin[0] << ", " << _cores[index]._origin[1] << std::endl;
-	std::cout << "core " << index << " mass " << _cores[index]._mass << " vs " << c._mass << std::endl;
+	if (index < 0 || index >= 9) return ;
+
+	t_core &c = _cores[index];
+	memmove(&c._destroyed, &static_cast<char*>(data)[8], CORE_PACKET_SIZE - 16);
+	memmove(&_gravity[index * 3], &static_cast<char*>(data)[8 + CORE_PACKET_SIZE - 16], 12); // position + mass
+	memmove(&_polarity[index], &static_cast<char*>(data)[8 + CORE_PACKET_SIZE - 4], 4); // just polarity
 }
 
 void Display::updateCores( void *data )
@@ -259,10 +254,9 @@ void Display::updateCores( void *data )
 		if (index == _multi_id) continue ;
 
 		t_core &c = _cores[index];
-		memmove(&c._destroyed, &static_cast<char*>(data)[7 + 92 * index], 92);
-		_gravity[index * 3 + 0] = c._origin[0];
-		_gravity[index * 3 + 1] = c._origin[1];
-		_gravity[index * 3 + 2] = c._mass;
+		memmove(&c._destroyed, &static_cast<char*>(data)[7 + CORE_PACKET_SIZE * index], CORE_PACKET_SIZE - 16);
+		memmove(&_gravity[index * 3], &static_cast<char*>(data)[7 + CORE_PACKET_SIZE * index + CORE_PACKET_SIZE - 16], 12); // position + mass
+		memmove(&_polarity[index], &static_cast<char*>(data)[7 + CORE_PACKET_SIZE * index + CORE_PACKET_SIZE - 4], 4); // just polarity
 		// std::cout << "core " << index << " destroyed " << _cores[index]._destroyed << " at pos " << _cores[index]._origin[0] << ", " << _cores[index]._origin[1] << std::endl;
 	}
 }
@@ -305,65 +299,34 @@ void Display::updateGameState( void )
 	if (_socket->GetType() == SOCKET::SERVER) {
 		char buffer[PACKET_SIZE_LIMIT];
 		strcpy(buffer, "Cores: ");
-		_cores[_multi_id]._mass = _gravity[_multi_id * 3 + 2];
 		for (int index = 0; index < 9; ++index) {
-			memmove(&buffer[7 + index * 92], &_cores[index]._destroyed, 92);
-			// t_core test;
-			// memmove(&test._destroyed, &buffer[7 + index * 92], 92);
-			// std::cout << "PREP FOR CORES UPDATE CORE " << index << std::endl;
-			// std::cout << "destroyed: " << _cores[index]._destroyed << " vs " << test._destroyed << std::endl;
-			// std::cout << "visible: " << _cores[index]._visible << " vs " << test._visible << std::endl;
-			// std::cout << "born_parts: " << _cores[index]._born_parts << " vs " << test._born_parts << std::endl;
-			// std::cout << "num_parts: " << _cores[index]._num_parts << " vs " << test._num_parts << std::endl;
-			// std::cout << "origin[0]: " << _cores[index]._origin[0] << " vs " << test._origin[0] << std::endl;
-			// std::cout << "origin[1]: " << _cores[index]._origin[1] << " vs " << test._origin[1] << std::endl;
-			// std::cout << "mass: " << _cores[index]._mass << " vs " << test._mass << std::endl;
-			// std::cout << "minTheta: " << _cores[index]._minTheta << " vs " << test._minTheta << std::endl;
-			// std::cout << "maxTheta: " << _cores[index]._maxTheta << " vs " << test._maxTheta << std::endl;
-			// std::cout << "minSpeed: " << _cores[index]._minSpeed << " vs " << test._minSpeed << std::endl;
-			// std::cout << "maxSpeed: " << _cores[index]._maxSpeed << " vs " << test._maxSpeed << std::endl;
+			memmove(&buffer[7 + index * CORE_PACKET_SIZE], &_cores[index]._destroyed, CORE_PACKET_SIZE - 16);
+			memmove(&buffer[7 + index * CORE_PACKET_SIZE + CORE_PACKET_SIZE - 16], &_gravity[index * 3], 12);
+			memmove(&buffer[7 + index * CORE_PACKET_SIZE + CORE_PACKET_SIZE - 4], &_polarity[index], 4);
 		}
-		buffer[835] = '\0';
-		_socket->Broadcast(buffer, 836);
-	} else if (_multi_id == 'x') {
+		buffer[865] = '\0';
+		_socket->Broadcast(buffer, 866);
+	} else if (_multi_id == 'x') { // we ask to connect until we receive answer
 		char buffer[PACKET_SIZE_LIMIT];
 		strcpy(buffer, "Connect");
 		_socket->Send(Address(), buffer, 8);
 	} else {
 		char buffer[PACKET_SIZE_LIMIT];
 		strcpy(buffer, (std::string("Core ") + static_cast<char>(_multi_id + '0') + ": ").c_str());
-		_cores[_multi_id]._mass = _gravity[_multi_id * 3 + 2];
-		memmove(&buffer[8], &_cores[_multi_id]._destroyed, 92);
-		// t_core test;
-		// memmove(&test._destroyed, &buffer[8], 92);
-		// std::cout << "PREP FOR CORE " << _multi_id << " UPDATE" << std::endl;
-		// for (int i = 0; i < 90; ++i) {
-		// 	std::cout << static_cast<int>(buffer[i]) << '|';
-		// }
-		// std::cout << std::endl;
-		// std::cout << "destroyed: " << _cores[_multi_id]._destroyed << " vs " << test._destroyed << std::endl;
-		// std::cout << "visible: " << _cores[_multi_id]._visible << " vs " << test._visible << std::endl;
-		// std::cout << "born_parts: " << _cores[_multi_id]._born_parts << " vs " << test._born_parts << std::endl;
-		// std::cout << "num_parts: " << _cores[_multi_id]._num_parts << " vs " << test._num_parts << std::endl;
-		// std::cout << "origin[0]: " << _cores[_multi_id]._origin[0] << " vs " << test._origin[0] << std::endl;
-		// std::cout << "origin[1]: " << _cores[_multi_id]._origin[1] << " vs " << test._origin[1] << std::endl;
-		// std::cout << "mass: " << _cores[_multi_id]._mass << " vs " << test._mass << std::endl;
-		// std::cout << "minTheta: " << _cores[_multi_id]._minTheta << " vs " << test._minTheta << std::endl;
-		// std::cout << "maxTheta: " << _cores[_multi_id]._maxTheta << " vs " << test._maxTheta << std::endl;
-		// std::cout << "minSpeed: " << _cores[_multi_id]._minSpeed << " vs " << test._minSpeed << std::endl;
-		// std::cout << "maxSpeed: " << _cores[_multi_id]._maxSpeed << " vs " << test._maxSpeed << std::endl;
-		buffer[100] = '\0';
-		_socket->Send(Address(), buffer, 101);
+		memmove(&buffer[8], &_cores[_multi_id]._destroyed, CORE_PACKET_SIZE - 16);
+		memmove(&buffer[8 + CORE_PACKET_SIZE - 16], &_gravity[_multi_id * 3], 12);
+		memmove(&buffer[8 + CORE_PACKET_SIZE - 4], &_polarity[_multi_id], 4);
+		buffer[108] = '\0';
+		_socket->Send(Address(), buffer, 109);
 	}
 }
 
 void Display::handleInputs( void )
 {
 	if (!_gui->mouseControl()) {
-		if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+		if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !_cores[_current_core]._destroyed) {
 			double mouseX, mouseY;
 			glfwGetCursorPos(_window, &mouseX, &mouseY);
-			_cores[_current_core]._origin = {static_cast<float>(mouseX + _winPos[0]), static_cast<float>(mouseY + _winPos[1])};
 			_gravity[_current_core * 3] = mouseX + _winPos[0];
 			_gravity[_current_core * 3 + 1] = mouseY + _winPos[1];
 		}
@@ -450,7 +413,6 @@ void Display::handleMultiInputs( void )
 		if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
 			double mouseX, mouseY;
 			glfwGetCursorPos(_window, &mouseX, &mouseY);
-			_cores[_multi_id]._origin = {static_cast<float>(mouseX + _winPos[0]), static_cast<float>(mouseY + _winPos[1])};
 			_gravity[_multi_id * 3] = mouseX + _winPos[0];
 			_gravity[_multi_id * 3 + 1] = mouseY + _winPos[1];
 		}
@@ -472,10 +434,10 @@ void Display::handleMultiInputs( void )
 				_gui->addVarInt(&_current_core, "current core is", false);
 				_gui->addVarInt(&_nb_cores, "active cores");
 				_gui->addColor("background",  {&_backCol[0], &_backCol[1], &_backCol[2], NULL});
-				_gui->addVarFloat(&_cores[0]._origin[0], "core0 x:", false);
-				_gui->addVarFloat(&_cores[0]._origin[1], "core0 y:", false);
-				_gui->addVarFloat(&_cores[1]._origin[0], "core1 x:", false);
-				_gui->addVarFloat(&_cores[1]._origin[1], "core1 y:", false);
+				_gui->addVarInt(&_cores[0]._birthSize, "core0 birth:", false);
+				_gui->addVarInt(&_cores[0]._deathSize, "core0 death:", false);
+				_gui->addVarInt(&_cores[1]._birthSize, "core1 birth:", false);
+				_gui->addVarInt(&_cores[1]._deathSize, "core1 death:", false);
 			}
 			return ;
 		}
@@ -510,7 +472,7 @@ void Display::render( void )
 		++index;
 		if (c._destroyed) continue ;
 		if (c._visible) {
-			_gui->writeText(c._origin[0] - _winPos[0] + 10, c._origin[1] - _winPos[1], 12, RGBA::WHITE, "Core " + std::to_string(index + 1));
+			_gui->writeText(_gravity[index * 3] - _winPos[0] + 10, _gravity[index * 3 + 1] - _winPos[1], 12, RGBA::WHITE, "Core " + std::to_string(index + 1));
 		}
 		int num_part = static_cast<int>(c._born_parts);
 		if (num_part < c._num_parts) {
@@ -528,10 +490,11 @@ void Display::render( void )
 		glUseProgram(_shaderUpdateProgram);
 
 		glUniform1f(_uniDeltaT, _deltaTime / 1000);
-		glUniform2f(_uniOrigin, c._origin[0], c._origin[1]);
+		glUniform2f(_uniOrigin, _gravity[index * 3], _gravity[index * 3 + 1]);
+		float gSave = _gravity[index * 3];
 		_gravity[index * 3] = 1000000; // disable own gravity
 		glUniform3fv(_uniGravity, 10, &_gravity[0]);
-		_gravity[index * 3] = c._origin[0]; // enable own gravity back for next cores
+		_gravity[index * 3] = gSave; // enable own gravity back for next cores
 		glUniform1iv(_uniPolarity, 10, &_polarity[0]);
 		glUniform1f(_uniMinTheta, c._minTheta);
 		glUniform1f(_uniMaxTheta, c._maxTheta);
@@ -545,7 +508,7 @@ void Display::render( void )
 		glEnable(GL_RASTERIZER_DISCARD); // we don't render anything
 
 		glBeginTransformFeedback(GL_POINTS);
-		glDrawArrays(GL_POINTS, 0, num_part);
+		glDrawArrays(GL_POINTS, 0, NUM_PARTS); // we always update 10000 particles, but only draw the amount we want
 		glEndTransformFeedback();
 
 		glDisable(GL_RASTERIZER_DISCARD);

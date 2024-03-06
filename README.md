@@ -1,5 +1,6 @@
 # Cores
 Playing around with particules in openGL.
+![2bleScreens](Resources/Screenshots/thumbnail.png)
 
 ## About
 I needed a project to get my hands on transform feedbacks in openGL, and here it is. I am hoping ot create a nice background screen shared by all computers on the same local networks, each station being able to generate particule-emitting cores, resulting in cooperative creations.
@@ -19,7 +20,7 @@ make will create the executable 'cores'.
 ## Multiplayer
 Multiplayer is available on this project.  It uses UDP sockets and was structured with the project [VOX](https://github.com/GitHuberlandYann/VOX.git) in mind, as my goal is to implement multiplayer on the local network for my minecraft clone.  I first made a [multiplayer game of chess](https://github.com/GitHuberlandYann/multiChesser.git), by using TCP sockets, but after reading these [great articles about Game Networking](https://gafferongames.com/categories/game-networking/) by Glenn Fiedler, I chose to turn myself towards UDP sockets, and this project was born.
 
-To enable multiplayer, press F3, then click on the MULTIPLAYER button, it will open a new Gui window. You can then either host a server or join an existing one on your local network. (For now Gui is not completely implemented, but goal is to later be able to select ip of host you want to connect to)
+To enable multiplayer, press F3, then click on the MULTIPLAYER button, it will open a new Gui window. You can then either host a server or join an existing one on your local network. Once connected to a server, you can only control one Core, whose gui window you can open and close by pressing 1. There can be up to 8 other cores than yours on the screen, each controlled by another client on the server.
 
 ## Controls
 When the program starts, there is one core at the center of the window, emitting particles.

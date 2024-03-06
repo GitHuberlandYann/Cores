@@ -35,14 +35,16 @@ typedef struct s_core {
 	bool _destroyed = true, _visible = false;
 	float _born_parts = 0;
 	int _num_parts;
-	std::array<float, 2> _origin;
-	float _mass; // NONE=??, ATTRACTION>, REPULSION<0
 	float _minTheta, _maxTheta;
 	float _minSpeed, _maxSpeed, _terminalVelocity;
 	std::array<float, 4> _birthCol = {1.0f, 0.0f, 0.0f, 1.0f}, _deathCol = {0.0f, 0.0f, 1.0f, 0.0f};
 	std::array<float, 3> _speedCol = {0.5f, 1.0f, 0.5f};
 	int _birthSize = 5, _deathSize = 0;
 }				t_core;
+// used for UDP packets
+// we don't send _vaos and _vbos so we substract 16
+// we send pos[2], mass, and polarity so we add 16
+const int CORE_PACKET_SIZE = sizeof(t_core);
 
 class Display
 {
