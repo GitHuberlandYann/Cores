@@ -16,6 +16,11 @@ make setup will install the needed [static libraries.](#libraries)
 
 make will create the executable 'cores'.
 
+## Multiplayer
+Multiplayer is available on this project.  It uses UDP sockets and was structured with the project [VOX](https://github.com/GitHuberlandYann/VOX.git) in mind, as my goal is to implement multiplayer on the local network for my minecraft clone.  I first made a [multiplayer game of chess](https://github.com/GitHuberlandYann/multiChesser.git), by using TCP sockets, but after reading these [great articles about Game Networking](https://gafferongames.com/categories/game-networking/) by Glenn Fiedler, I chose to turn myself towards UDP sockets, and this project was born.
+
+To enable multiplayer, press F3, then click on the MULTIPLAYER button, it will open a new Gui window. You can then either host a server or join an existing one on your local network. (For now Gui is not completely implemented, but goal is to later be able to select ip of host you want to connect to)
+
 ## Controls
 When the program starts, there is one core at the center of the window, emitting particles.
 You can left click to move the core around.

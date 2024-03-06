@@ -238,7 +238,7 @@ int Gui::getHighlightedWindow( int previous )
 		return (previous);
 	}
 	int res = _content[_highlighted_window].id;
-	if (res == -1) {
+	if (res < 0) {
 		return (previous);
 	}
 	return (res);

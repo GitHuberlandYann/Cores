@@ -2,7 +2,10 @@ NAME			= cores
 OBJS_DIR		= Objs
 SRCS_DIR		= Sources
 
-FILES			= callbacks main Display Gui random Text utils
+FILES			= main
+FILES			+= Render/callbacks Render/Display Render/Gui Render/Text
+FILES			+= UDP/Address UDP/Socket
+FILES			+= Utils/random Utils/utils
 
 SRCS			= $(addprefix $(SRCS_DIR)/, $(addsuffix .cpp, $(FILES)))
 OBJS 			= $(addprefix $(OBJS_DIR)/, $(addsuffix .o, $(FILES)))
@@ -29,6 +32,9 @@ all: $(OBJS_DIR) $(NAME)
 
 $(OBJS_DIR):
 	@mkdir -p $(OBJS_DIR)
+	@mkdir -p $(OBJS_DIR)/Render
+	@mkdir -p $(OBJS_DIR)/UDP
+	@mkdir -p $(OBJS_DIR)/Utils
 
 setup:
 	cd Libs/SOIL && ./configure && make

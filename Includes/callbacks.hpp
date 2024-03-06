@@ -8,6 +8,9 @@ void cursor_pos_callback( GLFWwindow *window, double posX, double posY );
 void mouse_button_callback( GLFWwindow *window, int button, int action, int mods );
 void gui_randomize_callback( int index );
 void rm_core_callback( int index );
+void gui_open_multiplayer_window_callback( int index );
+void host_server_callback( int index );
+void join_server_callback( int index );
 void error_callback( int error, const char *msg );
 
 #endif

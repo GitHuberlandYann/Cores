@@ -2,11 +2,13 @@
 # define DISPLAY_HPP
 
 # include "Gui.hpp"
+# include "Socket.hpp"
 
 # define GOLDEN_RATIO 1.6180339887
 # define WIN_HEIGHT 600
 # define WIN_WIDTH WIN_HEIGHT * GOLDEN_RATIO
 # define NUM_PARTS 10000
+# define TICK 0.05
 
 namespace POLARITY
 {
@@ -29,8 +31,8 @@ typedef struct s_state {
 }				t_state;
 
 typedef struct s_core {
-	bool _destoyed = true, _visible = false;
 	GLuint _vaos[2], _vbos[2];
+	bool _destroyed = true, _visible = false;
 	float _born_parts = 0;
 	int _num_parts;
 	std::array<float, 2> _origin;
@@ -57,11 +59,12 @@ class Display
 		std::array<int, 2> _winPos;
 		GLuint _texture;
 		t_state _state;
-		int _current_core, _fps;
+		int _current_core, _nb_cores, _multi_id, _fps, _tps;
 		float _deltaTime, _nb_parts;
 		bool _input_released;
 		std::array<t_core, 9> _cores;
 		Gui *_gui;
+		Socket *_socket;
 
 		void setup_window( void );
 		void create_shaders( void );
@@ -70,7 +73,12 @@ class Display
 		void add_core( int index );
 		void init_cores( int num_parts, float min_age, float max_age );
 
+		void updateCore( int index, void *data );
+		void updateCores( void *data );
+		void updateGameState( void );
+
 		void handleInputs( void );
+		void handleMultiInputs( void );
 		void render( void );
 		void main_loop( void );
 
@@ -81,6 +89,9 @@ class Display
 		void setWindowSize( int width, int height );
 		void setWindowPos( int posX, int posY );
 		void rmCore( int index );
+
+		void hostServer( void );
+		void joinServer( void );
 
 		void start( void );
 };

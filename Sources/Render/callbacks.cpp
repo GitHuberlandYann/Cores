@@ -69,6 +69,33 @@ void rm_core_callback( int index )
 	}
 }
 
+void host_server_callback( int index )
+{
+	(void)index;
+	if (display) {
+		display->hostServer();
+	}
+}
+
+void join_server_callback( int index )
+{
+	(void)index;
+	if (display) {
+		display->joinServer();
+	}
+}
+
+void gui_open_multiplayer_window_callback( int index )
+{
+	(void)index;
+	if (gui) {
+		if (gui->createWindow(-2, "Multiplayer", {20, 20}, {200, 75})) {
+			gui->addButton("Host server", host_server_callback);
+			gui->addButton("Join server", join_server_callback);
+		}
+	}
+}
+
 void error_callback( int error, const char *msg )
 {
     std::string s;
