@@ -2,6 +2,7 @@
 
 in vec2 position;
 in float age;
+// life [0;1] percent of lifeRange we add to min lifeSpan
 in float life;
 in vec2 velocity;
 
@@ -15,6 +16,8 @@ uniform float maxTheta;
 uniform float minSpeed;
 uniform float maxSpeed;
 uniform float terminalVelocity;
+uniform float lifeSpan;
+uniform float lifeRange;
 
 out vec2 Position;
 out float Age;
@@ -22,7 +25,7 @@ out float Life;
 out vec2 Velocity;
 
 void main() {
-	if (age >= life) {
+	if (age >= lifeSpan + life * lifeRange) {
 		ivec2 noise_coord = ivec2(gl_VertexID & 0x1FF, gl_VertexID >> 8);
 		vec2 rand = texelFetch(rgNoise, noise_coord, 0).rg;
 		float theta = minTheta + rand.r * (maxTheta - minTheta);

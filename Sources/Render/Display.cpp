@@ -117,6 +117,8 @@ void Display::setup_communication_shaders( void )
 	_uniMinSpeed = glGetUniformLocation(_shaderUpdateProgram, "minSpeed");
 	_uniMaxSpeed = glGetUniformLocation(_shaderUpdateProgram, "maxSpeed");
 	_uniTerminalVelocity = glGetUniformLocation(_shaderUpdateProgram, "terminalVelocity");
+	_uniLifeSpan = glGetUniformLocation(_shaderUpdateProgram, "lifeSpan");
+	_uniLifeRange = glGetUniformLocation(_shaderUpdateProgram, "lifeRange");
 
 	_uniWinPos = glGetUniformLocation(_shaderRenderProgram, "winPos");
 	_uniWinSize = glGetUniformLocation(_shaderRenderProgram, "winSize");
@@ -127,6 +129,8 @@ void Display::setup_communication_shaders( void )
 	_uniBirthColor = glGetUniformLocation(_shaderRenderProgram, "birthColor");
 	_uniDeathColor = glGetUniformLocation(_shaderRenderProgram, "deathColor");
 	_uniSpeedColor = glGetUniformLocation(_shaderRenderProgram, "speedColor");
+	_uniRLifeSpan = glGetUniformLocation(_shaderRenderProgram, "lifeSpan");
+	_uniRLifeRange = glGetUniformLocation(_shaderRenderProgram, "lifeRange");
 
 	check_glstate("\nCommunication with shader program successfully established", true);
 }
@@ -175,6 +179,8 @@ void Display::add_core( int index )
 	c._speedCol = {0.5f, 1.0f, 0.5f};
 	c._birthSize = 5;
 	c._deathSize = 0;
+	c._lifeSpan = 5.01f;
+	c._lifeRange = 5.14f;
 
 	glGenVertexArrays(2, c._vaos);
 	glGenBuffers(2, c._vbos);
@@ -201,14 +207,15 @@ void Display::add_core( int index )
 	}
 }
 
-void Display::init_cores( int num_parts, float min_age, float max_age )
+void Display::init_cores( int num_parts, float min_age, float age_range )
 {
 	unsigned seed = 654321;
 	_particles.reserve(num_parts);
 	for (int i = 0; i < num_parts; ++i) {
-		float life = min_age + Random::randomFloat(seed) * (max_age - min_age);
+		float life = Random::randomFloat(seed);
+		// float life = min_age + Random::randomFloat(seed) * (max_age - min_age);
 
-		_particles.push_back({{0, 0}, Random::randomFloat(seed) * life, life, {0, 0}});
+		_particles.push_back({{0, 0}, Random::randomFloat(seed) * (min_age + life * age_range), life, {0, 0}});
 	}
 
 	glfwGetWindowPos(_window, &_winPos[0], &_winPos[1]);
@@ -304,8 +311,7 @@ void Display::updateGameState( void )
 			memmove(&buffer[7 + index * CORE_PACKET_SIZE + CORE_PACKET_SIZE - 16], &_gravity[index * 3], 12);
 			memmove(&buffer[7 + index * CORE_PACKET_SIZE + CORE_PACKET_SIZE - 4], &_polarity[index], 4);
 		}
-		buffer[865] = '\0';
-		_socket->Broadcast(buffer, 866);
+		_socket->Broadcast(buffer, 7 + 9 * CORE_PACKET_SIZE);
 	} else if (_multi_id == 'x') { // we ask to connect until we receive answer
 		char buffer[PACKET_SIZE_LIMIT];
 		strcpy(buffer, "Connect");
@@ -316,8 +322,7 @@ void Display::updateGameState( void )
 		memmove(&buffer[8], &_cores[_multi_id]._destroyed, CORE_PACKET_SIZE - 16);
 		memmove(&buffer[8 + CORE_PACKET_SIZE - 16], &_gravity[_multi_id * 3], 12);
 		memmove(&buffer[8 + CORE_PACKET_SIZE - 4], &_polarity[_multi_id], 4);
-		buffer[108] = '\0';
-		_socket->Send(Address(), buffer, 109);
+		_socket->Send(Address(), buffer, 8 + CORE_PACKET_SIZE);
 	}
 }
 
@@ -395,12 +400,14 @@ void Display::handleInputs( void )
 			_gui->addSliderFloat("Terminal Speed", &c._terminalVelocity, 10, 1500);
 			_gui->addSliderInt("birth size", &c._birthSize, 0, 10);
 			_gui->addSliderInt("death size", &c._deathSize, 0, 10);
+			_gui->addSliderFloat("life span", &c._lifeSpan, 0, 20);
+			_gui->addSliderFloat("life range", &c._lifeRange, 0, 20);
 			_gui->addSliderFloat("Min Theta", &c._minTheta, -3.14159, 3.14159);
 			_gui->addSliderFloat("Max Theta", &c._maxTheta, -3.14159, 3.14159);
 			_gui->addColor("birth color", {&c._birthCol[0], &c._birthCol[1], &c._birthCol[2], &c._birthCol[3]});
 			_gui->addColor("death color", {&c._deathCol[0], &c._deathCol[1], &c._deathCol[2], &c._deathCol[3]});
 			_gui->addColor("speed color", {&c._speedCol[0], &c._speedCol[1], &c._speedCol[2], NULL});
-			_gui->addButton("RANDOMIZE", gui_randomize_callback);
+			_gui->addButton("RANDOMIZE", gui_randomize_callback, NULL, core_loc);
 			_gui->addBool("visible", &c._visible);
 			_gui->addButton("DESTROY", rm_core_callback, NULL, core_loc);
 		}
@@ -453,12 +460,14 @@ void Display::handleMultiInputs( void )
 			_gui->addSliderFloat("Terminal Speed", &c._terminalVelocity, 10, 1500);
 			_gui->addSliderInt("birth size", &c._birthSize, 0, 10);
 			_gui->addSliderInt("death size", &c._deathSize, 0, 10);
+			_gui->addSliderFloat("life span", &c._lifeSpan, 0, 20);
+			_gui->addSliderFloat("life range", &c._lifeRange, 0, 20);
 			_gui->addSliderFloat("Min Theta", &c._minTheta, -3.14159, 3.14159);
 			_gui->addSliderFloat("Max Theta", &c._maxTheta, -3.14159, 3.14159);
 			_gui->addColor("birth color", {&c._birthCol[0], &c._birthCol[1], &c._birthCol[2], &c._birthCol[3]});
 			_gui->addColor("death color", {&c._deathCol[0], &c._deathCol[1], &c._deathCol[2], &c._deathCol[3]});
 			_gui->addColor("speed color", {&c._speedCol[0], &c._speedCol[1], &c._speedCol[2], NULL});
-			_gui->addButton("RANDOMIZE", gui_randomize_callback);
+			_gui->addButton("RANDOMIZE", gui_randomize_callback, NULL, core_loc);
 			_gui->addBool("visible", &c._visible);
 			_gui->addButton("DESTROY", rm_core_callback, NULL, core_loc);
 		}
@@ -501,6 +510,8 @@ void Display::render( void )
 		glUniform1f(_uniMinSpeed, c._minSpeed);
 		glUniform1f(_uniMaxSpeed, c._maxSpeed);
 		glUniform1f(_uniTerminalVelocity, c._terminalVelocity);
+		glUniform1f(_uniLifeSpan, c._lifeSpan);
+		glUniform1f(_uniLifeRange, c._lifeRange);
 
 		glBindVertexArray(c._vaos[_state.read]);
 		glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, c._vbos[_state.write]);
@@ -530,6 +541,8 @@ void Display::render( void )
 		glUniform4fv(_uniBirthColor, 1, &c._birthCol[0]);
 		glUniform4fv(_uniDeathColor, 1, &c._deathCol[0]);
 		glUniform3fv(_uniSpeedColor, 1, &c._speedCol[0]);
+		glUniform1f(_uniRLifeSpan, c._lifeSpan);
+		glUniform1f(_uniRLifeRange, c._lifeRange);
 
 		glDrawArrays(GL_POINTS, 0, num_part);
 	}
@@ -666,7 +679,7 @@ void Display::start( void )
 	create_shaders();
 	setup_communication_shaders();
 	load_texture();
-	init_cores(NUM_PARTS, 5.01f, 10.15f);
+	init_cores(NUM_PARTS, 5.01f, 5.14f);
 	_gui->start();
 	main_loop();
 }

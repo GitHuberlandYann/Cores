@@ -1,9 +1,10 @@
 # Cores
 Playing around with particules in openGL.
+
 ![2bleScreens](Resources/Screenshots/thumbnail.png)
 
 ## About
-I needed a project to get my hands on transform feedbacks in openGL, and here it is. I am hoping ot create a nice background screen shared by all computers on the same local networks, each station being able to generate particule-emitting cores, resulting in cooperative creations.
+I needed a project to get my hands on transform feedbacks in openGL, and here it is. I am hoping to create a nice background screen shared by all computers on the same local networks, each station being able to generate particule-emitting cores, resulting in cooperative creations.
 
 ## Building
 ```
