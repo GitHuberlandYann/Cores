@@ -1,9 +1,10 @@
 #include "Gui.hpp"
+#include "callbacks.hpp"
 #include "random.hpp"
 
-Gui::Gui( void ) : _selection(-1), _highlighted_window(-1), _mouse_button(GLFW_RELEASE),
+Gui::Gui( void ) : _selection(-1), _highlighted_window(-1), _input_released(true),
 	_moving_window(false), _resize_window(false), _moving_slider(false), _moving_color(false),
-	_closing_window(false), _cursor(NULL)
+	_reading_inputs(false), _closing_window(false), _cursor(NULL)
 {
 	_text = new Text();
 }
@@ -29,7 +30,7 @@ void Gui::setCursorPosWindow( t_window &win, int posX, int posY )
 		}
 	} else if (inRectangle(posX, posY, win.size[0] - title_height / 2, win.size[1] - title_height / 2, title_height / 2, title_height / 2)) {
 		win.selection = 2; // resize window
-	} else {
+	} else { // containers
 		win.selection = -1;
 		int index = 3;
 		for (auto &cont : win.content) {
@@ -91,13 +92,14 @@ int Gui::containerWidth( t_container &cont )
 	switch (cont.type) {
 		case CONTAINER::TEXT:
 		case CONTAINER::BUTTON:
-			return (20 + _text->textWidth(font, cont.name));
+			return (30 + _text->textWidth(font, cont.name));
 		case CONTAINER::VAR_INT:
 		case CONTAINER::VAR_FLOAT:
-			return (20 + _text->textWidth(font, cont.name) + 6 * font);
+			return (30 + _text->textWidth(font, cont.name) + 6 * font);
 		case CONTAINER::BOOL:
 			return (30 + title_height + _text->textWidth(font, cont.name));
 		case CONTAINER::INPUT_TEXT:
+			return (2 * std::max(20 + cont.irange_start * font, 30 + _text->textWidth(font, cont.name)));
 		case CONTAINER::SLIDER_INT:
 		case CONTAINER::SLIDER_FLOAT:
 			return (2 * (30 + _text->textWidth(font, cont.name)));
@@ -193,6 +195,9 @@ void Gui::renderWindow( t_window &win, int windex )
 				_text->addQuads(0, win.pos[0] + 10, posY, win.size[0] / 2, title_height, RGBA::MOVE_WINDOW);
 				_text->addText(win.pos[0] + 20, posY + 4, font, RGBA::WHITE, cont.input->c_str());
 				_text->addText(win.pos[0] + 20 + win.size[0] / 2, posY + 4, font, RGBA::WHITE, cont.name,  win.size[0] / 2 - 30);
+				if (cont.input == INPUT::getMessagePtr()) {
+					_text->addQuads(0, win.pos[0] + 20 + _text->textWidth(font, *cont.input, INPUT::getCursor()), posY, font / 4, title_height, RGBA::CLOSE_WINDOW);
+				}
 				break ;
 			case CONTAINER::BUTTON:
 				_text->addQuads(0, win.pos[0] + 10, posY, win.size[0] - 20, title_height, (win.selection == index) ? RGBA::SLIDER_HOVER : RGBA::BUTTON);
@@ -329,7 +334,10 @@ void Gui::setCursorPos( double posX, double posY )
 void Gui::setMouseButton( GLFWwindow *window, int button, int action )
 {
 	if (button == GLFW_MOUSE_BUTTON_LEFT) {
-		_mouse_button = action;
+		if (_reading_inputs && action == GLFW_PRESS) { // no matter where you click, we reset reading inputs
+			INPUT::setMessagePtr(NULL, -1);
+			_reading_inputs = false;
+		}
 		if (action == GLFW_PRESS && _selection != -1) {
 			_highlighted_window = _selection;
 			putWindowOnTop(_selection);
@@ -353,6 +361,10 @@ void Gui::setMouseButton( GLFWwindow *window, int button, int action )
 				default: // on container
 					t_container &cont = win.content[win.selection - 3];
 					switch (cont.type) {
+						case CONTAINER::INPUT_TEXT:
+							INPUT::setMessagePtr(cont.input, cont.irange_start);
+							_reading_inputs = true;
+							break ;
 						case CONTAINER::SLIDER_INT:
 						case CONTAINER::SLIDER_FLOAT:
 							_moving_slider = true;
@@ -393,8 +405,14 @@ bool Gui::mouseControl( void )
 	return (_selection != -1 || _closing_window);
 }
 
-void Gui::start( void )
+bool Gui::keyboardControl( void )
 {
+	return (_reading_inputs);
+}
+
+void Gui::start( GLFWwindow *window )
+{
+	_window = window;
 	_shaderProgram = _text->start();
 	check_glstate("Gui successfully started", true);
 }
@@ -402,6 +420,26 @@ void Gui::start( void )
 void Gui::render( void )
 {
 	// _text->addText(10, 10, 20, RGBA::WHITE, "window " + std::to_string(_highlighted_window));
+
+	if (_reading_inputs) { // window needed here
+		if (glfwGetKey(_window, GLFW_KEY_ESCAPE) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_BACKSPACE) == GLFW_RELEASE
+			&& glfwGetKey(_window, GLFW_KEY_LEFT) == GLFW_RELEASE && glfwGetKey(_window, GLFW_KEY_RIGHT) == GLFW_RELEASE) {
+			_input_released = true;
+		} else if (_input_released) {
+			_input_released = false;
+			if (glfwGetKey(_window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+				INPUT::setMessagePtr(NULL, -1);
+				_reading_inputs = false;
+			} else if (glfwGetKey(_window, GLFW_KEY_BACKSPACE) == GLFW_PRESS) {
+				INPUT::rmLetter();
+			} else if (glfwGetKey(_window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+				INPUT::moveCursor(false, glfwGetKey(_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS);
+			} else if (glfwGetKey(_window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+				INPUT::moveCursor(true, glfwGetKey(_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS);
+			} 
+		}
+	}
+
 	for (int index : _draw_order) {
 		renderWindow(_content[index], index);
 	}
@@ -477,11 +515,29 @@ void Gui::resetWindow( int id, std::string title, std::string new_title )
 			win.content.clear();
 			win.selection = -1;
 			if (new_title[0]) win.title = new_title;
+			win.size = {20, 20};
 			return ;
 		}
 		++index;
 	}
 	createWindow(id, (new_title[0]) ? new_title : title);
+}
+
+/**
+ * @brief Find window with matching id and title and change it's title
+ * @param id id of targeted window
+ * @param title replace window's title with this one
+ * @param old_title optional. title of targeted window
+ */
+void Gui::renameWindow( int id, std::string title, std::string old_title )
+{
+	for (auto &win : _content) {
+		if (win.id == id) {
+			if (old_title[0] && win.title != old_title) continue ;
+			win.title = title;
+			return ;
+		}
+	}
 }
 
 /**

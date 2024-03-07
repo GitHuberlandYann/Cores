@@ -124,10 +124,11 @@ void Text::addQuads( int spec, int posX, int posY, int width, int height, int co
 	_texts.push_back(posY + height);
 }
 
-int Text::textWidth( int font_size, std::string str )
+int Text::textWidth( int font_size, std::string str, int limit )
 {
 	int res = 0;
 	for (size_t i = 0, charLine = 0; str[i]; ++i, ++charLine) {
+		if (limit != -1 && static_cast<int>(i) >= limit) return (res);
 		switch (str[i]) {
 			case '\n':
 				break ;
@@ -162,6 +163,7 @@ int Text::textWidth( int font_size, std::string str )
 			case '{':
 			case '}':
 				res += font_size * 0.7f;
+				break ;
 			default:
 				res += font_size;
 				break ;

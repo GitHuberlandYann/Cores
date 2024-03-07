@@ -49,7 +49,7 @@ class Text
 		void setWindowSize( int width, int height );
 		void addTriangle( int spec, std::array<int, 2> a, std::array<int, 2> b, std::array<int, 2> c, int color );
 		void addQuads( int spec, int posX, int posY, int width, int height, int color );
-		int textWidth( int font_size, std::string str );
+		int textWidth( int font_size, std::string str, int limit = -1 );
         void addText( int posX, int posY, int font_size, int color, std::string str, int limit = 0x7FFFFFFF );
 		void toScreen( void );
 };

@@ -107,3 +107,69 @@ void error_callback( int error, const char *msg )
     s = " [" + std::to_string(error) + "] " + msg + '\n';
     std::cerr << s << std::endl;
 }
+
+// ************************************************************************** //
+//                                Inputs                                      //
+// ************************************************************************** //
+
+namespace INPUT
+{
+	std::string *message = NULL;
+	int cursor = 0, limit = -1;
+
+	void character_callback( GLFWwindow* window, unsigned int codepoint )
+	{
+		(void)window;
+		if (!message) return ;
+		if (limit != -1 && static_cast<int>(message->size()) >= limit) return ;
+
+		if (codepoint < 32 || codepoint > 126) {
+			std::cout << __func__ << ": codepoint out of range: " << codepoint << std::endl;
+			return ;
+		}
+		// std::cout << "codepoint you just pressed: " << codepoint << " => " << ALPHABETA[codepoint - 32] << std::endl;
+		if (cursor == static_cast<int>(message->size())) {
+			*message += ALPHABETA[codepoint - 32];
+		} else {
+			*message = message->substr(0, cursor) + ALPHABETA[codepoint - 32] + message->substr(cursor);
+		}
+		++cursor;
+	}
+
+	void moveCursor( bool right, bool control )
+	{
+		if (!message) return ;
+		cursor += (right) ? 1 : -1;
+		if (cursor > static_cast<int>(message->size())) {
+			cursor = message->size();
+		} else if (cursor < 0) {
+			cursor = 0;
+		} else if (control && (*message)[cursor] != ' ') {
+			moveCursor(right, control);
+		}
+	}
+
+	void rmLetter( void )
+	{
+		if (!cursor || !message) return ;
+		*message = message->substr(0, cursor - 1) + message->substr(cursor);
+		--cursor;
+	}
+
+	void setMessagePtr( std::string *ptr, int lim )
+	{
+		message = ptr;
+		cursor = (message) ? message->size() : 0;
+		limit = lim;
+	}
+
+	std::string *getMessagePtr( void )
+	{
+		return (message);
+	}
+
+	int getCursor( void )
+	{
+		return (cursor);
+	}
+}

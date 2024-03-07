@@ -38,6 +38,7 @@ typedef struct s_container { // TODO simplify this to only use 2 void *, 2 int, 
 
 const int title_height = 20;
 const int font = 12;
+const char ALPHABETA[127] = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 const int min_win_width = 120;
 const int min_win_height = 40;
 typedef struct s_window {
@@ -52,11 +53,12 @@ class Gui
 {
 	private:
 		GLuint _shaderProgram;
-		int _selection, _highlighted_window, _mouse_button, _winWidth, _winHeight;
+		int _selection, _highlighted_window, _winWidth, _winHeight;
 		unsigned _seed;
-		bool _moving_window, _resize_window, _moving_slider, _moving_color, _closing_window;
+		bool _input_released, _moving_window, _resize_window, _moving_slider, _moving_color, _reading_inputs, _closing_window;
 		std::vector<t_window> _content;
 		std::vector<int> _draw_order;
+		GLFWwindow *_window;
 		GLFWcursor *_cursor;
 		Text *_text;
 
@@ -76,13 +78,15 @@ class Gui
 		void setCursorPos( double posX, double posY );
 		void setMouseButton( GLFWwindow *window, int button, int action );
 		bool mouseControl( void );
+		bool keyboardControl( void );
 
-		void start( void );
+		void start( GLFWwindow *window );
 		void render( void );
 
 		void writeText( int posX, int posY, int font_size, int color, std::string str );
 		bool createWindow( int id, std::string title, std::array<int, 2> pos = {20, 20}, std::array<int, 2> size = {250, title_height} );
 		void resetWindow( int id, std::string title, std::string new_title = "" );
+		void renameWindow( int id, std::string title, std::string old_title = "" );
 		void rmWindow( int id );
 		void randomizeWindowAt( int id );
 		void addText( std::string name );
