@@ -67,6 +67,7 @@ class Display
 		bool _input_released;
 		std::array<t_core, 9> _cores;
 		Gui *_gui;
+		std::string _server_ip = "localhost", _server_port = std::to_string(DEFAULT_PORT);
 		Socket *_socket;
 
 		void setup_window( void );
@@ -93,8 +94,10 @@ class Display
 		void setWindowPos( int posX, int posY );
 		void rmCore( int index );
 
+		void openMultiplayerWindow( void );
 		void hostServer( void );
 		void joinServer( void );
+		void closeSocket( void );
 
 		void start( void );
 };

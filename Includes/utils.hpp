@@ -32,4 +32,7 @@ void check_glstate( std::string str, bool displayDebug );
 // void loadSubTextureArray( int layer, std::string texture_file );
 void loadTextureShader( int index, GLuint texture, std::string texture_file );
 
+// ips
+std::string getEth0( void );
+
 #endif

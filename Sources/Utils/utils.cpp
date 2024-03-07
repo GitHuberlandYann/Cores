@@ -221,3 +221,40 @@ void loadTextureShader( int index, GLuint texture, std::string texture_file )
 
 	check_glstate("Succesfully loaded " + texture_file + " to shader", true);
 }
+
+
+// ************************************************************************** //
+//                                   ip                                       //
+// ************************************************************************** //
+   
+#include <sys/types.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <arpa/inet.h>
+
+// loops through nework interfaces of the local system, and return ipv4 of eth0 if found
+std::string getEth0( void )
+{
+    struct ifaddrs * ifAddrStruct = NULL;
+	std::string res = "";
+
+    getifaddrs(&ifAddrStruct);
+
+    for (struct ifaddrs *ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
+        if (!ifa->ifa_addr) {
+            continue;
+        }
+        if (ifa->ifa_addr->sa_family == AF_INET) { // check it is IPV4
+			if (!strcmp(ifa->ifa_name, "eth0")) {
+				char addressBuffer[INET_ADDRSTRLEN];
+				inet_ntop(AF_INET, &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr, addressBuffer, INET_ADDRSTRLEN);
+            	res = addressBuffer;
+				break ;
+			}
+		}
+    }
+
+    if (ifAddrStruct!=NULL) freeifaddrs(ifAddrStruct);
+    return (res);
+}

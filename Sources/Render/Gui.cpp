@@ -37,6 +37,7 @@ void Gui::setCursorPosWindow( t_window &win, int posX, int posY )
 			switch (cont.type) {
 				case CONTAINER::SLIDER_INT:
 				case CONTAINER::SLIDER_FLOAT:
+				case CONTAINER::INPUT_TEXT:
 					if (inRectangle(posX, posY, 10, title_height * 1.5f * (index - 2), win.size[0] / 2, title_height)) {
 						win.selection = index;
 						return ;
@@ -85,13 +86,40 @@ void Gui::setCursorPosWindow( t_window &win, int posX, int posY )
 	}
 }
 
+int Gui::containerWidth( t_container &cont )
+{
+	switch (cont.type) {
+		case CONTAINER::TEXT:
+		case CONTAINER::BUTTON:
+			return (20 + _text->textWidth(font, cont.name));
+		case CONTAINER::VAR_INT:
+		case CONTAINER::VAR_FLOAT:
+			return (20 + _text->textWidth(font, cont.name) + 6 * font);
+		case CONTAINER::BOOL:
+			return (30 + title_height + _text->textWidth(font, cont.name));
+		case CONTAINER::INPUT_TEXT:
+		case CONTAINER::SLIDER_INT:
+		case CONTAINER::SLIDER_FLOAT:
+			return (2 * (30 + _text->textWidth(font, cont.name)));
+		case CONTAINER::COLOR:
+			return (2 * (30 + title_height + _text->textWidth(font, cont.name)));
+	}
+	return (0);
+}
+
 void Gui::addContainer( t_container cont )
 {
 	t_window &win = _content.back();
 
 	win.content.push_back(cont);
-	if (win.size[1] < title_height * 1.5f * (win.content.size() + 1))
-		win.size[1] = title_height * 1.5f * (win.content.size() + 1);
+	int width = containerWidth(win.content.back());
+	if (win.size[0] < width) {
+		win.size[0] = width;
+	}
+	int height = title_height * 1.5f * (win.content.size() + 1);
+	if (win.size[1] < height) {
+		win.size[1] = height;
+	}
 }
 
 void Gui::randomizeWindow( t_window &win )
@@ -138,7 +166,7 @@ void Gui::renderWindow( t_window &win, int windex )
 	_text->addQuads(0, win.pos[0], win.pos[1] + title_height, win.size[0], win.size[1] - title_height, RGBA::BACK_WINDOW);
 	_text->addQuads(0, win.pos[0], win.pos[1], win.size[0] - title_height, title_height, (windex == _highlighted_window) ? RGBA::TITLE_SELECTED_WINDOW : RGBA::TITLE_WINDOW); // title bar
 	_text->addQuads(1, win.pos[0] + win.size[0] - title_height, win.pos[1], title_height, title_height, (win.selection == 0) ? RGBA::CLOSE_WINDOW_HOVER : RGBA::CLOSE_WINDOW);
-	_text->addText(win.pos[0] + 10, win.pos[1] + 4, 12, RGBA::WHITE, win.title);
+	_text->addText(win.pos[0] + 10, win.pos[1] + 4, font, RGBA::WHITE, win.title);
 	_text->addTriangle(0, {win.pos[0] + win.size[0], win.pos[1] + win.size[1] - title_height}, {win.pos[0] + win.size[0], win.pos[1] + win.size[1]},
 			{win.pos[0] + win.size[0] - title_height, win.pos[1] + win.size[1]}, RGBA::MOVE_WINDOW);
 	
@@ -149,66 +177,71 @@ void Gui::renderWindow( t_window &win, int windex )
 		int posY = win.pos[1] + title_height * 1.5f * (index - 2);
 		switch (cont.type) {
 			case CONTAINER::TEXT:
-				_text->addText(win.pos[0] + 10, posY + 4, 12, RGBA::WHITE, cont.name, win.size[0] - 30);
+				_text->addText(win.pos[0] + 10, posY + 4, font, RGBA::WHITE, cont.name, win.size[0] - 30);
 				break ;
 			case CONTAINER::VAR_INT:
 				str = ((cont.var_first) ? std::to_string(*cont.islider) + ' ' + cont.name
 										: cont.name + ' ' + std::to_string(*cont.islider));
-				_text->addText(win.pos[0] + 10, posY + 4, 12, RGBA::WHITE, str, win.size[0] - 30);
+				_text->addText(win.pos[0] + 10, posY + 4, font, RGBA::WHITE, str, win.size[0] - 30);
 				break ;
 			case CONTAINER::VAR_FLOAT:
 				str = ((cont.var_first) ? to_string_with_precision(*cont.fslider, 4) + ' ' + cont.name
 										: cont.name + ' ' + to_string_with_precision(*cont.fslider, 4));
-				_text->addText(win.pos[0] + 10, posY + 4, 12, RGBA::WHITE, str, win.size[0] - 30);
+				_text->addText(win.pos[0] + 10, posY + 4, font, RGBA::WHITE, str, win.size[0] - 30);
+				break ;
+			case CONTAINER::INPUT_TEXT:
+				_text->addQuads(0, win.pos[0] + 10, posY, win.size[0] / 2, title_height, RGBA::MOVE_WINDOW);
+				_text->addText(win.pos[0] + 20, posY + 4, font, RGBA::WHITE, cont.input->c_str());
+				_text->addText(win.pos[0] + 20 + win.size[0] / 2, posY + 4, font, RGBA::WHITE, cont.name,  win.size[0] / 2 - 30);
 				break ;
 			case CONTAINER::BUTTON:
 				_text->addQuads(0, win.pos[0] + 10, posY, win.size[0] - 20, title_height, (win.selection == index) ? RGBA::SLIDER_HOVER : RGBA::BUTTON);
 				str = cont.name;
-				_text->addText(win.pos[0] + (win.size[0] - _text->textWidth(12, str)) / 2, posY + 4, 12, RGBA::WHITE, str);
+				_text->addText(win.pos[0] + (win.size[0] - _text->textWidth(font, str)) / 2, posY + 4, font, RGBA::WHITE, str);
 				break ;
 			case CONTAINER::BOOL:
 				_text->addQuads(*cont.bptr, win.pos[0] + 10, posY, title_height, title_height, RGBA::BUTTON);
-				_text->addText(win.pos[0] + 20 + title_height, posY + 4 ,12, RGBA::WHITE, cont.name, win.size[0] - 40 - title_height);
+				_text->addText(win.pos[0] + 20 + title_height, posY + 4, font, RGBA::WHITE, cont.name, win.size[0] - 40 - title_height);
 				break ;
 			case CONTAINER::SLIDER_INT:
 				_text->addQuads(0, win.pos[0] + 10, posY, win.size[0] / 2, title_height, RGBA::BUTTON);
 				_text->addQuads(0, win.pos[0] + 10 + (win.size[0] / 2 - title_height + 8) * getPercent(*cont.islider, cont.irange_start, cont.irange_end),
 						posY + 2, title_height - 8, title_height - 4, (win.selection == index) ? RGBA::SLIDER_HOVER : RGBA::SLIDER);
 				str = std::to_string(*cont.islider);
-				_text->addText(win.pos[0] + 10 + win.size[0] / 4 - _text->textWidth(12, str) / 2, posY + 4, 12, RGBA::WHITE, str);
-				_text->addText(win.pos[0] + win.size[0] / 2 + 20, posY + 4, 12, RGBA::WHITE, cont.name, win.size[0] / 2 - 30);
+				_text->addText(win.pos[0] + 10 + win.size[0] / 4 - _text->textWidth(font, str) / 2, posY + 4, font, RGBA::WHITE, str);
+				_text->addText(win.pos[0] + win.size[0] / 2 + 20, posY + 4, font, RGBA::WHITE, cont.name, win.size[0] / 2 - 30);
 				break ;
 			case CONTAINER::SLIDER_FLOAT:
 				_text->addQuads(0, win.pos[0] + 10, posY, win.size[0] / 2, title_height, RGBA::BUTTON);
 				_text->addQuads(0, win.pos[0] + 10 + (win.size[0] / 2 - title_height + 8) * getPercent(*cont.fslider, cont.frange_start, cont.frange_end),
 						posY + 2, title_height - 8, title_height - 4, (win.selection == index) ? RGBA::SLIDER_HOVER : RGBA::SLIDER);
 				str = to_string_with_precision(*cont.fslider, 2, false);
-				_text->addText(win.pos[0] + 10 + win.size[0] / 4 - _text->textWidth(12, str) / 2, posY + 4, 12, RGBA::WHITE, str);
-				_text->addText(win.pos[0] + win.size[0] / 2 + 20, posY + 4, 12, RGBA::WHITE, cont.name, win.size[0] / 2 - 30);
+				_text->addText(win.pos[0] + 10 + win.size[0] / 4 - _text->textWidth(font, str) / 2, posY + 4, font, RGBA::WHITE, str);
+				_text->addText(win.pos[0] + win.size[0] / 2 + 20, posY + 4, font, RGBA::WHITE, cont.name, win.size[0] / 2 - 30);
 				break ;
 			case CONTAINER::ENUM:
 				_text->addQuads(0, win.pos[0] + 10, posY, win.size[0] - 20, title_height, (win.selection == index) ? RGBA::SLIDER_HOVER : RGBA::BUTTON);
 				str = cont.enu_list[cont.enu_index];
-				_text->addText(win.pos[0] + (win.size[0] - _text->textWidth(12, str)) / 2, posY + 4, 12, RGBA::WHITE, str);
+				_text->addText(win.pos[0] + (win.size[0] - _text->textWidth(font, str)) / 2, posY + 4, font, RGBA::WHITE, str);
 				break ;
 			case CONTAINER::COLOR:
 				int div = (cont.color[3]) ? 4 : 3, width = (win.size[0] / 2 - ((div == 4) ? 30 : 20)) / div;
 				_text->addQuads(0, win.pos[0] + 10, posY, width, title_height, RGBA::BUTTON);
 				str = std::to_string(static_cast<int>(*cont.color[0] * 255));
-				_text->addText(win.pos[0] + 10 + (width - _text->textWidth(12, str)) / 2, posY + 4, 12, RGBA::WHITE, str);
+				_text->addText(win.pos[0] + 10 + (width - _text->textWidth(font, str)) / 2, posY + 4, font, RGBA::WHITE, str);
 				_text->addQuads(0, win.pos[0] + 20 + width, posY, width, title_height, RGBA::BUTTON);
 				str = std::to_string(static_cast<int>(*cont.color[1] * 255));
-				_text->addText(win.pos[0] + 20 + width + (width - _text->textWidth(12, str)) / 2, posY + 4, 12, RGBA::WHITE, str);
+				_text->addText(win.pos[0] + 20 + width + (width - _text->textWidth(font, str)) / 2, posY + 4, font, RGBA::WHITE, str);
 				_text->addQuads(0, win.pos[0] + 30 + 2 * width, posY, width, title_height, RGBA::BUTTON);
 				str = std::to_string(static_cast<int>(*cont.color[2] * 255));
-				_text->addText(win.pos[0] + 30 + 2 * width + (width - _text->textWidth(12, str)) / 2, posY + 4, 12, RGBA::WHITE, str);
+				_text->addText(win.pos[0] + 30 + 2 * width + (width - _text->textWidth(font, str)) / 2, posY + 4, font, RGBA::WHITE, str);
 				if (div == 4) {
 					_text->addQuads(0, win.pos[0] + 40 + 3 * width, posY, width, title_height, RGBA::BUTTON);
 					str = std::to_string(static_cast<int>(*cont.color[3] * 255));
-					_text->addText(win.pos[0] + 40 + 3 * width + (width - _text->textWidth(12, str)) / 2, posY + 4, 12, RGBA::WHITE, str);
+					_text->addText(win.pos[0] + 40 + 3 * width + (width - _text->textWidth(font, str)) / 2, posY + 4, font, RGBA::WHITE, str);
 				}
 				_text->addQuads(0, win.pos[0] + win.size[0] / 2 + 20, posY, title_height, title_height, rgbaFromVec({*cont.color[0], *cont.color[1], *cont.color[2], (div == 4) ? *cont.color[3] : 1.0f}));
-				_text->addText(win.pos[0] + win.size[0] / 2 + 30 + title_height, posY + 4, 12, RGBA::WHITE, cont.name, win.size[0] / 2 - 40 - title_height);
+				_text->addText(win.pos[0] + win.size[0] / 2 + 30 + title_height, posY + 4, font, RGBA::WHITE, cont.name, win.size[0] / 2 - 40 - title_height);
 				break ;
 		}
 		++index;
@@ -387,10 +420,10 @@ void Gui::writeText( int posX, int posY, int font_size, int color, std::string s
 
 /**
  * @brief create new Gui window to be displayed when Gui::render() is called
- * @param id : value returned by Gui::getHighlighted if this window is highlighted
- * @param title : string displayed on top of window
- * @param pos : ivec2 representing position of top left corner of window on GLFWwindow
- * @param size : ivec2 representing width and hight of created window
+ * @param id value returned by Gui::getHighlighted if this window is highlighted
+ * @param title string displayed on top of window
+ * @param pos ivec2 representing position of top left corner of window on GLFWwindow
+ * @param size ivec2 representing width and hight of created window
  * @return true if new window created, false if window with same id and title already exists, in which case said window has beed deleted
  */
 bool Gui::createWindow( int id, std::string title, std::array<int, 2> pos, std::array<int, 2> size )
@@ -430,8 +463,30 @@ bool Gui::createWindow( int id, std::string title, std::array<int, 2> pos, std::
 }
 
 /**
+ * @brief Find window with matching id and title and reset it's content, if no window found, create a new window
+ * @param id id of targeted window
+ * @param title title of targeted window
+ * @param new_title optional. If given, replace window's title with this one
+ */
+void Gui::resetWindow( int id, std::string title, std::string new_title )
+{
+	int index = 0;
+	for (auto &win : _content) {
+		if (win.id == id && win.title == title) {
+			_highlighted_window = index;
+			win.content.clear();
+			win.selection = -1;
+			if (new_title[0]) win.title = new_title;
+			return ;
+		}
+		++index;
+	}
+	createWindow(id, (new_title[0]) ? new_title : title);
+}
+
+/**
  * @brief Remove window with id 'id'
- * @param id : id of windows to be deleted
+ * @param id id of windows to be deleted
  */
 void Gui::rmWindow( int id )
 {
@@ -453,7 +508,7 @@ void Gui::rmWindow( int id )
 
 /**
  * @brief Randomize content of window with id 'id'
- * @param id : id of windows to be randomized
+ * @param id id of windows to be randomized
  */
 void Gui::randomizeWindowAt( int id )
 {
@@ -466,7 +521,7 @@ void Gui::randomizeWindowAt( int id )
 
 /**
  * @brief add Text container to the last created window with Gui::createWindow
- * @param name : string displayed in container
+ * @param name string displayed in container
  */
 void Gui::addText( std::string name )
 {
@@ -477,9 +532,9 @@ void Gui::addText( std::string name )
 
 /**
  * @brief add VarInt container to the last created window with Gui::createWindow
- * @param ptr : pointer to the integer to be displayed
- * @param name : string displayed after int
- * @param var_first : optional, if false this displays name + int
+ * @param ptr pointer to the integer to be displayed
+ * @param name string displayed after int
+ * @param var_first optional, if false this displays name + int
  */
 void Gui::addVarInt( int *ptr, std::string name, bool var_first )
 {
@@ -490,9 +545,9 @@ void Gui::addVarInt( int *ptr, std::string name, bool var_first )
 
 /**
  * @brief add VarFloat container to the last created window with Gui::createWindow
- * @param ptr : pointer to the float to be displayed
- * @param name : string displayed after int
- * @param var_first : optional, if false this displays name + float
+ * @param ptr pointer to the float to be displayed
+ * @param name string displayed after int
+ * @param var_first optional, if false this displays name + float
  */
 void Gui::addVarFloat( float *ptr, std::string name , bool var_first )
 {
@@ -502,10 +557,22 @@ void Gui::addVarFloat( float *ptr, std::string name , bool var_first )
 }
 
 /**
+ * @brief add InputText container to the last created window with Gui::createWindow
+ * @param ptr pointer to the string to be modified by user
+ * @param size optional. limits size of input
+ */
+void Gui::addInputText( std::string name, std::string *ptr, int limit )
+{
+	if (_content.empty() || !ptr || (limit != -1 && limit < static_cast<int>(ptr->size()))) return ;
+
+	addContainer({CONTAINER::INPUT_TEXT, name, NULL, NULL, limit, 0, NULL, 0, 0, NULL, 0, {}, 0, {NULL, NULL, NULL, NULL}, false, NULL, ptr});
+}
+
+/**
  * @brief add Button container to the last created window with Gui::createWindow
- * @param name : string displayed onto button
- * @param foo_ptr : function called by each press on the button
- * @param iptr : optional. if given, ptr to int argument of foo_ptr
+ * @param name string displayed onto button
+ * @param foo_ptr function called by each press on the button
+ * @param iptr optional. if given, ptr to int argument of foo_ptr
  */
 void Gui::addButton( std::string name, void (*foo_ptr)( int ), int *iptr, int i )
 {
@@ -516,8 +583,8 @@ void Gui::addButton( std::string name, void (*foo_ptr)( int ), int *iptr, int i 
 
 /**
  * @brief add Bool container to the last created window with Gui::createWindow
- * @param name : string displayed square
- * @param ptr : pointer to bool
+ * @param name string displayed square
+ * @param ptr pointer to bool
  */
 void Gui::addBool( std::string name, bool *ptr )
 {
@@ -528,10 +595,10 @@ void Gui::addBool( std::string name, bool *ptr )
 
 /**
  * @brief add SliderInt container to the last created window with Gui::createWindow
- * @param name : string displayed after slider
- * @param ptr : pointer to int variable modified by slider
- * @param minRange : the minimum value the variable can be set to
- * @param minRange : the maximum value the variable can be set to
+ * @param name string displayed after slider
+ * @param ptr pointer to int variable modified by slider
+ * @param minRange the minimum value the variable can be set to
+ * @param minRange the maximum value the variable can be set to
  */
 void Gui::addSliderInt( std::string name, int *ptr, int minRange, int maxRange )
 {
@@ -542,10 +609,10 @@ void Gui::addSliderInt( std::string name, int *ptr, int minRange, int maxRange )
 
 /**
  * @brief add SliderFloat container to the last created window with Gui::createWindow
- * @param name : string displayed after slider
- * @param ptr : pointer to float variable modified by slider
- * @param minRange : the minimum value the variable can be set to
- * @param minRange : the maximum value the variable can be set to
+ * @param name string displayed after slider
+ * @param ptr pointer to float variable modified by slider
+ * @param minRange the minimum value the variable can be set to
+ * @param minRange the maximum value the variable can be set to
  */
 void Gui::addSliderFloat( std::string name, float *ptr, float minRange, float maxRange )
 {
@@ -556,9 +623,9 @@ void Gui::addSliderFloat( std::string name, float *ptr, float minRange, float ma
 
 /**
  * @brief add Enum container to the last created window with Gui::createWindow
- * @param enu_list : vector of string displayed on button
- * @param iptr : pointer to int variable modified by button, or NULL
- * @param foo_ptr : function called by each press on the button, or NULL
+ * @param enu_list vector of string displayed on button
+ * @param iptr pointer to int variable modified by button, or NULL
+ * @param foo_ptr function called by each press on the button, or NULL
  */
 void Gui::addEnum( std::vector<std::string> enu_list, int *iptr, void (*foo_ptr)( int ) )
 {
@@ -569,8 +636,8 @@ void Gui::addEnum( std::vector<std::string> enu_list, int *iptr, void (*foo_ptr)
 
 /**
  * @brief add Color container to the last created window with Gui::createWindow
- * @param name : string displayed after color's RGBA channels
- * @param color : vec4 of pointers to float in range[0:1], color[3] (=alpha) is optional
+ * @param name string displayed after color's RGBA channels
+ * @param color vec4 of pointers to float in range[0:1], color[3] (=alpha) is optional
  */
 void Gui::addColor( std::string name, std::array<float*, 4> color )
 {

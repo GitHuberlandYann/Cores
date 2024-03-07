@@ -77,12 +77,14 @@ bool Socket::Send( const Address & destination, const void * data, int size )
     addr.sin_port = htons(destination.getPort());
 
 	t_client *dst = NULL;
+	int index = 0;
 	if (_type == SOCKET::SERVER) {
 		for (auto &c : _clients) {
 			if (c.ip == destination) {
 				dst = &c;
 				break ;
 			}
+			++index;
 		}
 	} else if (_type == SOCKET::CLIENT) {
 		if (_clients.empty()) {
@@ -93,6 +95,17 @@ bool Socket::Send( const Address & destination, const void * data, int size )
 
 	if (!dst) {
 		std::cerr << "failed to send packet, client not found" << std::endl;
+		return (false);
+	}
+
+	if (++dst->timeout > 5 * 20) { // we send packets at a rate of 20/seconds
+		// disconnection
+		if (_type == SOCKET::SERVER) {
+			std::cout << "disconnection from " << dst->ip << ", id is " << dst->id << std::endl;
+		} else {
+			std::cout << "disconnected from server" << std::endl;
+		}
+		_clients.erase(_clients.begin() + index);
 		return (false);
 	}
 
@@ -122,6 +135,10 @@ bool Socket::Send( const Address & destination, const void * data, int size )
 		int64_t ms = std::chrono::time_point_cast<std::chrono::microseconds>(timestamp).time_since_epoch().count();
 		_pending_packets.push_back({dst->sequence, ms});
 		++_sent;
+		if (_pending_packets.size() > 32) {
+			_pending_packets.pop_front();
+			++_lost;
+		}
 	}
 	++dst->sequence;
 	return (true);
@@ -215,6 +232,7 @@ int Socket::Receive( Address & sender, void * data, int size )
 		}
 		std::cout << "new connection from " << src->ip << ", id is " << src->id << std::endl;
 	}
+	src->timeout = 0; // reset timeout
 	if (!sequence_greater_than(packet.sequence, src->ack)) {
 		std::cerr << "packet discarded because sequence smaller than remote" << std::endl;
 		if (_type == SOCKET::SERVER) { // update ack_bitfield
@@ -286,4 +304,24 @@ int Socket::GetId( Address & target )
 		}
 	}
 	return (-1);
+}
+
+Address &Socket::GetServerAddress( void )
+{
+	return (_server_ip);
+}
+
+void *Socket::GetPingPtr( void )
+{
+	return (&_ping);
+}
+
+void *Socket::GetPacketLostPtr( void )
+{
+	return (&_lost);
+}
+
+void *Socket::GetPacketSentPtr( void )
+{
+	return (&_sent);
 }

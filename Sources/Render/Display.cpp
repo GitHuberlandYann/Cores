@@ -289,7 +289,6 @@ void Display::updateGameState( void )
 			updateCores(buffer);
 		} else if (!strncmp(buffer, "Connect", 7)) {
 			if (_socket->GetType() == SOCKET::SERVER) {
-				std::cout << buffer << std::endl;
 				int id = _socket->GetId(sender);
 				buffer[7] = id + '0';
 				buffer[8] = '\0';
@@ -315,14 +314,18 @@ void Display::updateGameState( void )
 	} else if (_multi_id == 'x') { // we ask to connect until we receive answer
 		char buffer[PACKET_SIZE_LIMIT];
 		strcpy(buffer, "Connect");
-		_socket->Send(Address(), buffer, 8);
+		if (!_socket->Send(_socket->GetServerAddress(), buffer, 8)) {
+			closeSocket();
+		}
 	} else {
 		char buffer[PACKET_SIZE_LIMIT];
 		strcpy(buffer, (std::string("Core ") + static_cast<char>(_multi_id + '0') + ": ").c_str());
 		memmove(&buffer[8], &_cores[_multi_id]._destroyed, CORE_PACKET_SIZE - 16);
 		memmove(&buffer[8 + CORE_PACKET_SIZE - 16], &_gravity[_multi_id * 3], 12);
 		memmove(&buffer[8 + CORE_PACKET_SIZE - 4], &_polarity[_multi_id], 4);
-		_socket->Send(Address(), buffer, 8 + CORE_PACKET_SIZE);
+		if (!_socket->Send(_socket->GetServerAddress(), buffer, 8 + CORE_PACKET_SIZE)) {
+			closeSocket();
+		}
 	}
 }
 
@@ -416,7 +419,7 @@ void Display::handleInputs( void )
 
 void Display::handleMultiInputs( void )
 {
-	if (!_gui->mouseControl()) {
+	if (!_gui->mouseControl() && _multi_id != 'x') {
 		if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
 			double mouseX, mouseY;
 			glfwGetCursorPos(_window, &mouseX, &mouseY);
@@ -431,20 +434,18 @@ void Display::handleMultiInputs( void )
 		_input_released = false;
 		size_t core_loc = 12;
 		if (glfwGetKey(_window, GLFW_KEY_1) == GLFW_PRESS) {
+			if (_multi_id == 'x') return ;
 			core_loc = _multi_id;
 		} else if (glfwGetKey(_window, GLFW_KEY_F3) == GLFW_PRESS) {
 			if (_gui->createWindow(-1, "Debug window", {20, 20}, {270, 150})) {
 				_gui->addVarFloat(&_deltaTime, "ms this frame");
 				_gui->addVarInt(&_fps, "FPS");
 				_gui->addVarInt(&_tps, "TPS");
+				_gui->addButton("MULTIPLAYER", gui_open_multiplayer_window_callback);
 				_gui->addVarFloat(&_nb_parts, "particles");
 				_gui->addVarInt(&_current_core, "current core is", false);
 				_gui->addVarInt(&_nb_cores, "active cores");
 				_gui->addColor("background",  {&_backCol[0], &_backCol[1], &_backCol[2], NULL});
-				_gui->addVarInt(&_cores[0]._birthSize, "core0 birth:", false);
-				_gui->addVarInt(&_cores[0]._deathSize, "core0 death:", false);
-				_gui->addVarInt(&_cores[1]._birthSize, "core1 birth:", false);
-				_gui->addVarInt(&_cores[1]._deathSize, "core1 death:", false);
 			}
 			return ;
 		}
@@ -648,6 +649,31 @@ void Display::rmCore( int index )
 	_gravity[index * 3] = 1000000;
 }
 
+void Display::openMultiplayerWindow( void )
+{
+	if (!_socket) {
+		if (_gui->createWindow(-2, "Multiplayer", {20, 20}, {200, 75})) {
+			_gui->addInputText("port", &_server_port);
+			_gui->addButton("Host server", host_server_callback);
+			_gui->addInputText("server ip", &_server_ip);
+			_gui->addButton("Join server", join_server_callback);
+		}
+	} else if (_socket->GetType() == SOCKET::SERVER) {
+		if (_gui->createWindow(-2, "Host", {20, 20}, {200, 75})) {
+			_gui->addText("Hosting server on " + getEth0() + ':' + std::to_string(DEFAULT_PORT));
+			_gui->addButton("Close server", close_socket_callback);
+		}
+	} else {
+		if (_gui->createWindow(-2, "Client", {20, 20}, {200, 75})) {
+			_gui->addText("Joined server on " + getEth0() + ':' + std::to_string(DEFAULT_PORT)); // TODO replace this by ip of server, not my own
+			_gui->addVarInt(static_cast<int*>(_socket->GetPacketLostPtr()), "packets lost");
+			_gui->addVarInt(static_cast<int*>(_socket->GetPacketSentPtr()), "packets sent");
+			_gui->addVarInt(static_cast<int*>(_socket->GetPingPtr()), "ping:", false);
+			_gui->addButton("Quit server", close_socket_callback);
+		}
+	}
+}
+
 void Display::hostServer( void )
 {
 	if (_socket) return ;
@@ -659,6 +685,10 @@ void Display::hostServer( void )
 	for (int i = 1; i < 9; ++i) {
 		rm_core_callback(i);
 	}
+
+	_gui->resetWindow(-2, "Multiplayer", "Host");
+	_gui->addText("Hosting server on " + getEth0() + ':' + std::to_string(DEFAULT_PORT));
+	_gui->addButton("Close server", close_socket_callback);
 }
 
 void Display::joinServer( void )
@@ -671,6 +701,34 @@ void Display::joinServer( void )
 	for (int i = 0; i < 9; ++i) {
 		rm_core_callback(i);
 	}
+
+	_gui->resetWindow(-2, "Multiplayer", "Client");
+	_gui->addText("Joined server on " + getEth0() + ':' + std::to_string(DEFAULT_PORT)); // TODO replace this by ip of server, not my own
+	_gui->addVarInt(static_cast<int*>(_socket->GetPacketLostPtr()), "packets lost");
+	_gui->addVarInt(static_cast<int*>(_socket->GetPacketSentPtr()), "packets sent");
+	_gui->addVarInt(static_cast<int*>(_socket->GetPingPtr()), "ping:", false);
+	_gui->addButton("Quit server", close_socket_callback);
+}
+
+void Display::closeSocket( void )
+{
+	// _gui->rmWindow(-1); // F3 window
+
+	if (!_socket) {
+		_gui->rmWindow(-2); // multiplayer window
+		return ;
+	}
+
+	if (_socket->GetType() == SOCKET::CLIENT) {
+		_gui->resetWindow(-2, "Client", "Disconnected");
+		_gui->addText("Connection with server lost");
+	} else {
+		_gui->resetWindow(-2, "Host", "Offline");
+		_gui->addText("Server successfully closed");
+	}
+
+	delete _socket;
+	_socket = NULL;
 }
 
 void Display::start( void )

@@ -9,6 +9,7 @@ namespace CONTAINER
 		TEXT,			// quite explicit
 		VAR_INT,		// track and print var ptr to int
 		VAR_FLOAT,		// track and print var ptr to float
+		INPUT_TEXT,		// mod ptr to string with user's inputs
 		BUTTON,			// calls ptr_function when pressed
 		BOOL,			// mod ptr to bool to true/false
 		SLIDER_INT,		// mod ptr to int linearly within given range
@@ -18,7 +19,7 @@ namespace CONTAINER
 	};
 }
 
-typedef struct s_container {
+typedef struct s_container { // TODO simplify this to only use 2 void *, 2 int, 2 float
 	int type = CONTAINER::TEXT;
 	std::string name = "";
 	void (*foo_ptr)( int ) = NULL;
@@ -32,9 +33,11 @@ typedef struct s_container {
 	std::array<float*, 4> color = {NULL, NULL, NULL, NULL};
 	bool var_first = true;
 	bool *bptr = NULL;
+	std::string *input = NULL;
 }				t_container;
 
 const int title_height = 20;
+const int font = 12;
 const int min_win_width = 120;
 const int min_win_height = 40;
 typedef struct s_window {
@@ -58,6 +61,7 @@ class Gui
 		Text *_text;
 
 		void setCursorPosWindow( t_window &win, int posX, int posY );
+		int containerWidth( t_container &cont );
 		void addContainer( t_container cont );
 		void randomizeWindow( t_window &win );
 		void putWindowOnTop( int index );
@@ -77,12 +81,14 @@ class Gui
 		void render( void );
 
 		void writeText( int posX, int posY, int font_size, int color, std::string str );
-		bool createWindow( int id, std::string title, std::array<int, 2> pos = {20, 20}, std::array<int, 2> size = {450, 420} );
+		bool createWindow( int id, std::string title, std::array<int, 2> pos = {20, 20}, std::array<int, 2> size = {250, title_height} );
+		void resetWindow( int id, std::string title, std::string new_title = "" );
 		void rmWindow( int id );
 		void randomizeWindowAt( int id );
 		void addText( std::string name );
 		void addVarInt( int *ptr, std::string name, bool var_first = true );
 		void addVarFloat( float *ptr, std::string name , bool var_first = true );
+		void addInputText( std::string name, std::string *ptr, int limit = -1 );
 		void addButton( std::string name, void (*foo_ptr)( int ), int *iptr = NULL, int i = -1 );
 		void addBool( std::string name, bool *ptr );
 		void addSliderInt( std::string name, int *ptr, int minRange = 0, int maxRange = 10 );

@@ -31,6 +31,7 @@ typedef struct s_packet {
 
 typedef struct s_client {
 	Address ip;
+	unsigned int timeout = 0;
 	int id = -1;
 	uint16_t sequence = 0;
 	uint16_t ack = -1;
@@ -57,11 +58,16 @@ class Socket
 
 		int GetType( void );
 		int GetId( Address & target );
+		Address &GetServerAddress( void );
+		void *GetPingPtr( void );
+		void *GetPacketLostPtr( void );
+		void *GetPacketSentPtr( void );
 
     private:
 
         int _handle, _type, _ping;
 		unsigned _sent, _lost;
+		Address _server_ip;
 		std::vector<t_client> _clients;
 		// list of packets waiting for acknoledgment, with timestamps to compute ping
 		std::list<std::pair<uint16_t, int64_t>> _pending_packets;

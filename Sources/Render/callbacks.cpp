@@ -85,14 +85,19 @@ void join_server_callback( int index )
 	}
 }
 
+void close_socket_callback( int index )
+{
+	(void)index;
+	if (display) {
+		display->closeSocket();
+	}
+}
+
 void gui_open_multiplayer_window_callback( int index )
 {
 	(void)index;
-	if (gui) {
-		if (gui->createWindow(-2, "Multiplayer", {20, 20}, {200, 75})) {
-			gui->addButton("Host server", host_server_callback);
-			gui->addButton("Join server", join_server_callback);
-		}
+	if (display) {
+		display->openMultiplayerWindow();
 	}
 }
 

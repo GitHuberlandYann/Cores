@@ -11,6 +11,7 @@ void rm_core_callback( int index );
 void gui_open_multiplayer_window_callback( int index );
 void host_server_callback( int index );
 void join_server_callback( int index );
+void close_socket_callback( int index );
 void error_callback( int error, const char *msg );
 
 #endif
