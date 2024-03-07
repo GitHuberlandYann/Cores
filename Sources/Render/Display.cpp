@@ -380,13 +380,13 @@ void Display::handleInputs( void )
 			core_loc = 8;
 		} else if (glfwGetKey(_window, GLFW_KEY_F3) == GLFW_PRESS) {
 			if (_gui->createWindow(-1, "Debug window", {20, 20}, {270, 150})) {
-				_gui->addVarFloat(&_deltaTime, "ms this frame");
-				_gui->addVarInt(&_fps, "FPS");
-				_gui->addVarInt(&_tps, "TPS");
+				_gui->addVarFloat("", &_deltaTime, "ms this frame");
+				_gui->addVarInt("", &_fps, " FPS");
+				_gui->addVarInt("", &_tps, " TPS");
 				_gui->addButton("MULTIPLAYER", gui_open_multiplayer_window_callback);
-				_gui->addVarFloat(&_nb_parts, "particles");
-				_gui->addVarInt(&_current_core, "current core is", false);
-				_gui->addVarInt(&_nb_cores, "active cores");
+				_gui->addVarFloat("", &_nb_parts, " particles");
+				_gui->addVarInt("current core is ", &_current_core, "");
+				_gui->addVarInt("", &_nb_cores, " active cores");
 				_gui->addColor("background",  {&_backCol[0], &_backCol[1], &_backCol[2], NULL});
 				_gui->addText("Cursor:");
 				_gui->addSliderFloat("Mass", &_gravity[29], 1, 10);
@@ -443,13 +443,13 @@ void Display::handleMultiInputs( void )
 			core_loc = _multi_id;
 		} else if (glfwGetKey(_window, GLFW_KEY_F3) == GLFW_PRESS) {
 			if (_gui->createWindow(-1, "Debug window", {20, 20}, {270, 150})) {
-				_gui->addVarFloat(&_deltaTime, "ms this frame");
-				_gui->addVarInt(&_fps, "FPS");
-				_gui->addVarInt(&_tps, "TPS");
+				_gui->addVarFloat("", &_deltaTime, "ms this frame");
+				_gui->addVarInt("", &_fps, " FPS");
+				_gui->addVarInt("", &_tps, " TPS");
 				_gui->addButton("MULTIPLAYER", gui_open_multiplayer_window_callback);
-				_gui->addVarFloat(&_nb_parts, "particles");
-				_gui->addVarInt(&_current_core, "current core is", false);
-				_gui->addVarInt(&_nb_cores, "active cores");
+				_gui->addVarFloat("", &_nb_parts, " particles");
+				_gui->addVarInt("current core is ", &_current_core, "");
+				_gui->addVarInt("", &_nb_cores, " active cores");
 				_gui->addColor("background",  {&_backCol[0], &_backCol[1], &_backCol[2], NULL});
 			}
 			return ;
@@ -672,9 +672,9 @@ void Display::openMultiplayerWindow( void )
 	} else {
 		if (_gui->createWindow(-2, "Client", {20, 20}, {200, 75})) {
 			_gui->addText("Joined server on " + _server_ip + ':' + _server_port); // TODO replace this by ip of server, not my own
-			_gui->addVarInt(static_cast<int*>(_socket->GetPacketLostPtr()), "packets lost");
-			_gui->addVarInt(static_cast<int*>(_socket->GetPacketSentPtr()), "packets sent");
-			_gui->addVarInt(static_cast<int*>(_socket->GetPingPtr()), "ping:", false);
+			_gui->addVarInt("lost: ", static_cast<int*>(_socket->GetPacketLostPtr()), " packets");
+			_gui->addVarInt("sent: ", static_cast<int*>(_socket->GetPacketSentPtr()), " packets");
+			_gui->addVarInt("ping: ", static_cast<int*>(_socket->GetPingPtr()), "ms");
 			_gui->addButton("Quit server", close_socket_callback);
 		}
 	}
@@ -750,9 +750,9 @@ void Display::joinServer( void )
 
 	_gui->resetWindow(-2, "Multiplayer", "Client");
 	_gui->addText("Joined server on " + _server_ip + ':' + _server_port);
-	_gui->addVarInt(static_cast<int*>(_socket->GetPacketLostPtr()), "packets lost");
-	_gui->addVarInt(static_cast<int*>(_socket->GetPacketSentPtr()), "packets sent");
-	_gui->addVarInt(static_cast<int*>(_socket->GetPingPtr()), "ping:", false);
+	_gui->addVarInt("lost: ", static_cast<int*>(_socket->GetPacketLostPtr()), " packets");
+	_gui->addVarInt("sent: ", static_cast<int*>(_socket->GetPacketSentPtr()), " packets");
+	_gui->addVarInt("ping: ", static_cast<int*>(_socket->GetPingPtr()), "ms");
 	_gui->addButton("Quit server", close_socket_callback);
 }
 

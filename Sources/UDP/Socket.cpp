@@ -7,7 +7,7 @@
 #include <chrono>
 #include <array>
 
-Socket::Socket( int type ) : _handle(-1), _type(type), _ping(0), _sent(0), _lost(0)
+Socket::Socket( int type ) : _handle(-1), _type(type), _ping_us(0), _ping_ms(0), _sent(0), _lost(0)
 {
 
 }
@@ -249,7 +249,8 @@ int Socket::Receive( Address & sender, void * data, int size )
 				auto endstamp = std::chrono::high_resolution_clock::now();
 				int64_t end = std::chrono::time_point_cast<std::chrono::microseconds>(endstamp).time_since_epoch().count();
 				int ping = end - pack.second;
-				_ping += 0.1 * (ping - _ping); // exponentially smoothed moving average
+				_ping_us += 0.1 * (ping - _ping_us); // exponentially smoothed moving average
+				_ping_ms = _ping_us * 0.001f;
 				// std::cout << "received packet " << packet.ack << " | " << pack.second << " -> " << end << ", packet's ping is " << ping << "us. Smoothed ping is " << _ping << std::endl;
 				_pending_packets.remove(pack);
 				break ;
@@ -313,7 +314,7 @@ Address &Socket::GetServerAddress( void )
 
 void *Socket::GetPingPtr( void )
 {
-	return (&_ping);
+	return (&_ping_ms);
 }
 
 void *Socket::GetPacketLostPtr( void )

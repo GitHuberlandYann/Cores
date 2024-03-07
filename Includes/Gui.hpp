@@ -31,7 +31,6 @@ typedef struct s_container { // TODO simplify this to only use 2 void *, 2 int, 
 	std::vector<std::string> enu_list = {};
 	int selection = -1;
 	std::array<float*, 4> color = {NULL, NULL, NULL, NULL};
-	bool var_first = true;
 	bool *bptr = NULL;
 	std::string *input = NULL;
 }				t_container;
@@ -90,8 +89,8 @@ class Gui
 		void rmWindow( int id );
 		void randomizeWindowAt( int id );
 		void addText( std::string name );
-		void addVarInt( int *ptr, std::string name, bool var_first = true );
-		void addVarFloat( float *ptr, std::string name , bool var_first = true );
+		void addVarInt( std::string before, int *ptr, std::string after );
+		void addVarFloat( std::string before, float *ptr, std::string after );
 		void addInputText( std::string name, std::string *ptr, int limit = -1 );
 		void addButton( std::string name, void (*foo_ptr)( int ), int *iptr = NULL, int i = -1 );
 		void addBool( std::string name, bool *ptr );

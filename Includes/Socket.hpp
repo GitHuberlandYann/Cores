@@ -65,7 +65,7 @@ class Socket
 
     private:
 
-        int _handle, _type, _ping;
+        int _handle, _type, _ping_us, _ping_ms;
 		unsigned _sent, _lost;
 		Address _server_ip;
 		std::vector<t_client> _clients;

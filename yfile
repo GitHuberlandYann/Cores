@@ -1,0 +1,8 @@
+TODOS:
+  - [happened once...] check little offset between positions (perhaps due to pos window not taking into account window border)
+  - better reset upon connection to server
+  - use texture on particles
+  - better ping display (in ms instead of us)
+  - 4 big families: +, -, *, /
+	- each core choses which family his particles are
+	- each core can repulse/attract/neutral each family of particles

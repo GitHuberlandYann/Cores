@@ -95,7 +95,7 @@ int Gui::containerWidth( t_container &cont )
 			return (30 + _text->textWidth(font, cont.name));
 		case CONTAINER::VAR_INT:
 		case CONTAINER::VAR_FLOAT:
-			return (30 + _text->textWidth(font, cont.name) + 6 * font);
+			return (30 + _text->textWidth(font, cont.enu_list[0] + cont.enu_list[1]) + 6 * font);
 		case CONTAINER::BOOL:
 			return (30 + title_height + _text->textWidth(font, cont.name));
 		case CONTAINER::INPUT_TEXT:
@@ -182,13 +182,11 @@ void Gui::renderWindow( t_window &win, int windex )
 				_text->addText(win.pos[0] + 10, posY + 4, font, RGBA::WHITE, cont.name, win.size[0] - 30);
 				break ;
 			case CONTAINER::VAR_INT:
-				str = ((cont.var_first) ? std::to_string(*cont.islider) + ' ' + cont.name
-										: cont.name + ' ' + std::to_string(*cont.islider));
+				str = cont.enu_list[0] + std::to_string(*cont.islider) + cont.enu_list[1];
 				_text->addText(win.pos[0] + 10, posY + 4, font, RGBA::WHITE, str, win.size[0] - 30);
 				break ;
 			case CONTAINER::VAR_FLOAT:
-				str = ((cont.var_first) ? to_string_with_precision(*cont.fslider, 4) + ' ' + cont.name
-										: cont.name + ' ' + to_string_with_precision(*cont.fslider, 4));
+				str = cont.enu_list[0] + to_string_with_precision(*cont.fslider, 4) + cont.enu_list[1];
 				_text->addText(win.pos[0] + 10, posY + 4, font, RGBA::WHITE, str, win.size[0] - 30);
 				break ;
 			case CONTAINER::INPUT_TEXT:
@@ -589,27 +587,27 @@ void Gui::addText( std::string name )
 /**
  * @brief add VarInt container to the last created window with Gui::createWindow
  * @param ptr pointer to the integer to be displayed
- * @param name string displayed after int
- * @param var_first optional, if false this displays name + int
+ * @param before string displayed before nbr
+ * @param after string displayed after nbr
  */
-void Gui::addVarInt( int *ptr, std::string name, bool var_first )
+void Gui::addVarInt( std::string before, int *ptr, std::string after )
 {
 	if (_content.empty() || !ptr) return ;
 
-	addContainer({CONTAINER::VAR_INT, name, NULL, ptr, 0, 0, NULL, 0, 0, NULL, 0, {}, 0, {NULL, NULL, NULL, NULL}, var_first});
+	addContainer({CONTAINER::VAR_INT, "", NULL, ptr, 0, 0, NULL, 0, 0, NULL, 0, {before, after}});
 }
 
 /**
  * @brief add VarFloat container to the last created window with Gui::createWindow
  * @param ptr pointer to the float to be displayed
- * @param name string displayed after int
- * @param var_first optional, if false this displays name + float
+ * @param before string displayed before nbr
+ * @param after string displayed after nbr
  */
-void Gui::addVarFloat( float *ptr, std::string name , bool var_first )
+void Gui::addVarFloat( std::string before, float *ptr, std::string after )
 {
 	if (_content.empty() || !ptr) return ;
 
-	addContainer({CONTAINER::VAR_FLOAT, name, NULL, NULL, 0, 0, ptr, 0, 0, NULL, 0, {}, 0, {NULL, NULL, NULL, NULL}, var_first});
+	addContainer({CONTAINER::VAR_FLOAT, "", NULL, NULL, 0, 0, ptr, 0, 0, NULL, 0, {before, after}});
 }
 
 /**
@@ -621,7 +619,7 @@ void Gui::addInputText( std::string name, std::string *ptr, int limit )
 {
 	if (_content.empty() || !ptr || (limit != -1 && limit < static_cast<int>(ptr->size()))) return ;
 
-	addContainer({CONTAINER::INPUT_TEXT, name, NULL, NULL, limit, 0, NULL, 0, 0, NULL, 0, {}, 0, {NULL, NULL, NULL, NULL}, false, NULL, ptr});
+	addContainer({CONTAINER::INPUT_TEXT, name, NULL, NULL, limit, 0, NULL, 0, 0, NULL, 0, {}, 0, {NULL, NULL, NULL, NULL}, NULL, ptr});
 }
 
 /**
@@ -646,7 +644,7 @@ void Gui::addBool( std::string name, bool *ptr )
 {
 	if (_content.empty() || !ptr) return ;
 
-	addContainer({CONTAINER::BOOL, name, NULL, NULL, 0, 0, NULL, 0, 0, NULL, 0 , {}, 0, {NULL, NULL, NULL, NULL}, false, ptr});
+	addContainer({CONTAINER::BOOL, name, NULL, NULL, 0, 0, NULL, 0, 0, NULL, 0 , {}, 0, {NULL, NULL, NULL, NULL}, ptr});
 }
 
 /**
