@@ -26,6 +26,8 @@ To enable multiplayer, press F3, then click on the MULTIPLAYER button, it will o
 ## GUI
 I coded my own Gui window management. It allows to create several customizable gui windows on screen, on which you can add sliders, display values, modify color channels, and more. It was inspired from [Dear ImGui](https://github.com/ocornut/imgui.git), and is used to customize your cores' properties, connect yourself to a server, and display useful informations.
 
+![gui](Resources/Screenshots/gui_demo.png)
+
 ## Controls
 When the program starts, there is one core at the center of the window, emitting particles.
 You can left click to move the core around.
