@@ -84,7 +84,7 @@ class Gui
 
 		void writeText( int posX, int posY, int font_size, int color, std::string str );
 		bool createWindow( int id, std::string title, std::array<int, 2> pos = {20, 20}, std::array<int, 2> size = {250, title_height} );
-		void resetWindow( int id, std::string title, std::string new_title = "" );
+		void resetWindow( int id, std::string title, std::string old_title = "", bool recursion = false );
 		void renameWindow( int id, std::string title, std::string old_title = "" );
 		void rmWindow( int id );
 		void randomizeWindowAt( int id );

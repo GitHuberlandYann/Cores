@@ -165,6 +165,7 @@ void Display::add_core( int index )
 	if (!c._destroyed) return ;
 	c._destroyed = false;
 	c._visible = false;
+	c._freezed = false;
 	c._num_parts = NUM_PARTS;
 	_gravity[index * 3 + 0] = _winPos[0] + _winWidth / 2;
 	_gravity[index * 3 + 1] = _winPos[1] + _winHeight / 2;
@@ -415,6 +416,7 @@ void Display::handleInputs( void )
 			_gui->addColor("speed color", {&c._speedCol[0], &c._speedCol[1], &c._speedCol[2], NULL});
 			_gui->addButton("RANDOMIZE", gui_randomize_callback, NULL, core_loc);
 			_gui->addBool("visible", &c._visible);
+			_gui->addBool("freeze", &c._freezed);
 			_gui->addButton("DESTROY", rm_core_callback, NULL, core_loc);
 		}
 	}
@@ -489,48 +491,53 @@ void Display::render( void )
 		if (c._visible) {
 			_gui->writeText(_gravity[index * 3] - _winPos[0] + 10, _gravity[index * 3 + 1] - _winPos[1], 12, RGBA::WHITE, "Core " + std::to_string(index + 1));
 		}
+
 		int num_part = static_cast<int>(c._born_parts);
-		if (num_part < c._num_parts) {
-			c._born_parts += 4 * _deltaTime; // birth rate
-			if (c._born_parts > c._num_parts) {
-				c._born_parts = c._num_parts;
+		if (!c._freezed || _socket) { // update particles
+
+			if (num_part < c._num_parts) {
+				c._born_parts += 4 * _deltaTime; // birth rate
+				if (c._born_parts > c._num_parts) {
+					c._born_parts = c._num_parts;
+				}
+			} else if (num_part > c._num_parts) {
+				c._born_parts -= 4 * _deltaTime; // death rate
+				if (c._born_parts < 0) {
+					c._born_parts = 0;
+				}
 			}
-		} else if (num_part > c._num_parts) {
-			c._born_parts -= 4 * _deltaTime; // death rate
-			if (c._born_parts < 0) {
-				c._born_parts = 0;
-			}
+
+			glUseProgram(_shaderUpdateProgram);
+
+			glUniform1f(_uniDeltaT, _deltaTime / 1000);
+			glUniform2f(_uniOrigin, _gravity[index * 3], _gravity[index * 3 + 1]);
+			float gSave = _gravity[index * 3];
+			_gravity[index * 3] = 1000000; // disable own gravity
+			glUniform3fv(_uniGravity, 10, &_gravity[0]);
+			_gravity[index * 3] = gSave; // enable own gravity back for next cores
+			glUniform1iv(_uniPolarity, 10, &_polarity[0]);
+			glUniform1f(_uniMinTheta, c._minTheta);
+			glUniform1f(_uniMaxTheta, c._maxTheta);
+			glUniform1f(_uniMinSpeed, c._minSpeed);
+			glUniform1f(_uniMaxSpeed, c._maxSpeed);
+			glUniform1f(_uniTerminalVelocity, c._terminalVelocity);
+			glUniform1f(_uniLifeSpan, c._lifeSpan);
+			glUniform1f(_uniLifeRange, c._lifeRange);
+
+			glBindVertexArray(c._vaos[_state.read]);
+			glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, c._vbos[_state.read]);
+
+			glEnable(GL_RASTERIZER_DISCARD); // we don't render anything
+
+			glBeginTransformFeedback(GL_POINTS);
+			glDrawArrays(GL_POINTS, 0, NUM_PARTS); // we always update 10000 particles, but only draw the amount we want
+			glEndTransformFeedback();
+
+			glDisable(GL_RASTERIZER_DISCARD);
+
+			glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, NULL); // unbind transform feedback buffer
+
 		}
-
-		glUseProgram(_shaderUpdateProgram);
-
-		glUniform1f(_uniDeltaT, _deltaTime / 1000);
-		glUniform2f(_uniOrigin, _gravity[index * 3], _gravity[index * 3 + 1]);
-		float gSave = _gravity[index * 3];
-		_gravity[index * 3] = 1000000; // disable own gravity
-		glUniform3fv(_uniGravity, 10, &_gravity[0]);
-		_gravity[index * 3] = gSave; // enable own gravity back for next cores
-		glUniform1iv(_uniPolarity, 10, &_polarity[0]);
-		glUniform1f(_uniMinTheta, c._minTheta);
-		glUniform1f(_uniMaxTheta, c._maxTheta);
-		glUniform1f(_uniMinSpeed, c._minSpeed);
-		glUniform1f(_uniMaxSpeed, c._maxSpeed);
-		glUniform1f(_uniTerminalVelocity, c._terminalVelocity);
-		glUniform1f(_uniLifeSpan, c._lifeSpan);
-		glUniform1f(_uniLifeRange, c._lifeRange);
-
-		glBindVertexArray(c._vaos[_state.read]);
-		glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, c._vbos[_state.write]);
-
-		glEnable(GL_RASTERIZER_DISCARD); // we don't render anything
-
-		glBeginTransformFeedback(GL_POINTS);
-		glDrawArrays(GL_POINTS, 0, NUM_PARTS); // we always update 10000 particles, but only draw the amount we want
-		glEndTransformFeedback();
-
-		glDisable(GL_RASTERIZER_DISCARD);
-
-		glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, NULL); // unbind transform feedback buffer
 
 		// now we draw
 		glBindVertexArray(c._vaos[_state.read]);
@@ -553,9 +560,9 @@ void Display::render( void )
 		glDrawArrays(GL_POINTS, 0, num_part);
 	}
 
-	int tmp = _state.read;
-	_state.read = _state.write;
-	_state.write = tmp;
+	// int tmp = _state.read;
+	// _state.read = _state.write;
+	// _state.write = tmp;
 
 	check_glstate("render", false);
 }
@@ -569,11 +576,12 @@ void Display::main_loop( void )
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
 	set_display_callback(this, _gui);
-	glfwSetWindowSizeCallback(_window, window_size_callback);
+	// glfwSetWindowSizeCallback(_window, window_size_callback);
 	glfwSetWindowPosCallback(_window, window_pos_callback);
 	glfwSetCursorPosCallback(_window, cursor_pos_callback);
 	glfwSetMouseButtonCallback(_window, mouse_button_callback);
 	glfwSetCharCallback(_window, INPUT::character_callback);
+	glfwSetWindowRefreshCallback(_window, window_refresh_callback);
 	_gui->setWindowSize(_winWidth, _winHeight);
 
 	check_glstate("setup done, entering main loop\n", true);
@@ -709,7 +717,7 @@ void Display::hostServer( void )
 		rm_core_callback(i);
 	}
 
-	_gui->resetWindow(-2, "Multiplayer", "Host"); // TODO resetWindow only taking id into account
+	_gui->resetWindow(-2, "Host");
 	_gui->addText("Hosting server on " + getEth0() + ':' + _server_port);
 	_gui->addButton("Close server", close_socket_callback);
 }
@@ -748,7 +756,7 @@ void Display::joinServer( void )
 		rm_core_callback(i);
 	}
 
-	_gui->resetWindow(-2, "Multiplayer", "Client");
+	_gui->resetWindow(-2, "Client");
 	_gui->addText("Joined server on " + _server_ip + ':' + _server_port);
 	_gui->addVarInt("lost: ", static_cast<int*>(_socket->GetPacketLostPtr()), " packets");
 	_gui->addVarInt("sent: ", static_cast<int*>(_socket->GetPacketSentPtr()), " packets");
@@ -766,10 +774,10 @@ void Display::closeSocket( void )
 	}
 
 	if (_socket->GetType() == SOCKET::CLIENT) {
-		_gui->resetWindow(-2, "Client", "Disconnected");
+		_gui->resetWindow(-2, "Disconnected");
 		_gui->addText("Connection with server lost");
 	} else {
-		_gui->resetWindow(-2, "Host", "Offline");
+		_gui->resetWindow(-2, "Offline");
 		_gui->addText("Server successfully closed");
 	}
 

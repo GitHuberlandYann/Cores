@@ -251,6 +251,10 @@ std::string getEth0( void )
 				inet_ntop(AF_INET, &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr, addressBuffer, INET_ADDRSTRLEN);
             	res = addressBuffer;
 				break ;
+			} else if (!strcmp(ifa->ifa_name, "en0")) {
+				char addressBuffer[INET_ADDRSTRLEN];
+				inet_ntop(AF_INET, &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr, addressBuffer, INET_ADDRSTRLEN);
+            	res = addressBuffer;
 			}
 		}
     }

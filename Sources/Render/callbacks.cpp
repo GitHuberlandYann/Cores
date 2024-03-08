@@ -15,7 +15,7 @@ void set_display_callback( Display *dis, Gui *g )
 	gui = g;
 }
 
-void window_size_callback( GLFWwindow *window, int width, int height )
+static void window_size_callback( GLFWwindow *window, int width, int height )
 {
 	(void)window;
 	// std::cout << "window resized to " << width << ", " << height << std::endl;
@@ -34,6 +34,17 @@ void window_pos_callback( GLFWwindow *window, int posX, int posY )
 	if (display) {
 		display->setWindowPos(posX, posY);
 	}
+}
+
+// using this instead of window_size_callback because when you resize window from top border, window_pos_callback not called
+void window_refresh_callback( GLFWwindow *window )
+{
+	// std::cout << "refresh callback" << std::endl;
+	int posX, posY;
+	glfwGetWindowPos(window, &posX, &posY);
+	window_pos_callback(window, posX, posY);
+	glfwGetWindowSize(window, &posX, &posY);
+	window_size_callback(window, posX, posY);
 }
 
 void cursor_pos_callback( GLFWwindow *window, double posX, double posY )

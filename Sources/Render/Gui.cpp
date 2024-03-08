@@ -499,26 +499,34 @@ bool Gui::createWindow( int id, std::string title, std::array<int, 2> pos, std::
 }
 
 /**
- * @brief Find window with matching id and title and reset it's content, if no window found, create a new window
+ * @brief Find windows with matching id [and title] and reset their content, if no window found, create a new window
  * @param id id of targeted window
- * @param title title of targeted window
- * @param new_title optional. If given, replace window's title with this one
+ * @param title replace window's title with this one
+ * @param old_title optional. If given, only del window with this id and title
  */
-void Gui::resetWindow( int id, std::string title, std::string new_title )
+void Gui::resetWindow( int id, std::string title, std::string old_title, bool recursion )
 {
+	std::array<int, 2> pos = {20, 20};
 	int index = 0;
+	bool winDestroyed = false;
 	for (auto &win : _content) {
-		if (win.id == id && win.title == title) {
+		if (win.id == id && (!old_title[0] || win.title == old_title)) {
 			_highlighted_window = index;
-			win.content.clear();
-			win.selection = -1;
-			if (new_title[0]) win.title = new_title;
-			win.size = {20, 20};
-			return ;
+			pos = win.pos;
+			putWindowOnTop(index);
+			rmWindow(id);
+			winDestroyed = true;
+			break ;
 		}
 		++index;
 	}
-	createWindow(id, (new_title[0]) ? new_title : title);
+	if (winDestroyed) {
+		resetWindow(id, title, old_title, true); // recursively destroy all window with given id
+	}
+	if (recursion) {
+		return ;
+	}
+	createWindow(id, title, pos);
 }
 
 /**

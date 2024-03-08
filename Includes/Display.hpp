@@ -32,7 +32,7 @@ typedef struct s_state {
 
 typedef struct s_core {
 	GLuint _vaos[2], _vbos[2];
-	bool _destroyed = true, _visible = false;
+	bool _destroyed = true, _visible = false, _freezed = false;
 	float _born_parts = 0;
 	int _num_parts;
 	float _minTheta, _maxTheta;
