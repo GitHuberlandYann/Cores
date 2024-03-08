@@ -32,6 +32,7 @@ typedef struct s_state {
 
 typedef struct s_core {
 	GLuint _vaos[2], _vbos[2];
+	std::string _core_name = "";
 	bool _destroyed = true, _visible = false, _freezed = false;
 	float _born_parts = 0;
 	int _num_parts;
@@ -45,7 +46,9 @@ typedef struct s_core {
 // used for UDP packets
 // we don't send _vaos and _vbos so we substract 16 bytes
 // we send pos[2], mass, and polarity so we add 16 bytes
-const int CORE_PACKET_SIZE = sizeof(t_core);
+// we don't send _core_name so we substract sizeof(std::string) (should be 24)
+// we send core name as a 10 bytes char * so we add 10
+const int CORE_PACKET_SIZE = sizeof(t_core) - sizeof(std::string) + 10;
 
 class Display
 {

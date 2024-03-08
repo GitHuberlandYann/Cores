@@ -3,5 +3,6 @@ TODOS:
   - better reset upon connection to server
   - use texture on particles
   - 4 big families: +, -, *, /
-    - each core choses which family his particles are
+    - each core choses which family his particles are from
     - each core can repulse/attract/neutral each family of particles
+    - toggle to display particles in their family's color

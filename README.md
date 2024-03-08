@@ -23,6 +23,9 @@ Multiplayer is available on this project.  It uses UDP sockets and was structure
 
 To enable multiplayer, press F3, then click on the MULTIPLAYER button, it will open a new Gui window. You can then either host a server or join an existing one on your local network. Once connected to a server, you can only control one Core, whose gui window you can open and close by pressing 1. There can be up to 8 other cores than yours on the screen, each controlled by another client on the server.
 
+## GUI
+I coded my own Gui window management. It allows to create several customizable gui windows on screen, on which you can add sliders, display values, modify color channels, and more. It was inspired from [Dear ImGui](https://github.com/ocornut/imgui.git), and is used to customize your cores' properties, connect yourself to a server, and display useful informations.
+
 ## Controls
 When the program starts, there is one core at the center of the window, emitting particles.
 You can left click to move the core around.

@@ -17,7 +17,7 @@ namespace SOCKET
 // id used for this program, if other id found in packet, it is discarded
 // for the program ./cores, id is "Core" (0x43 0x6F 0x72 0x65)
 const unsigned int PROTOCOL_ID = 0x436F7265;
-const int PACKET_SIZE_LIMIT = 1024;
+const int PACKET_SIZE_LIMIT = 1450;
 const int CLIENT_SIZE_LIMIT = 8;
 const uint16_t UINT16_HALF = 0x8000;
 

@@ -9,6 +9,7 @@ Display::Display( void )
 		_multi_id('x'), _input_released(true), _socket(NULL)
 {
 	_gui = new Gui();
+	// std::cout << "core packet size " << CORE_PACKET_SIZE << std::endl;
 }
 
 Display::~Display( void )
@@ -163,6 +164,7 @@ void Display::add_core( int index )
 	t_core &c = _cores[index];
 
 	if (!c._destroyed) return ;
+	c._core_name = std::string("Core ") + (char)('0' + index);
 	c._destroyed = false;
 	c._visible = false;
 	c._freezed = false;
@@ -251,9 +253,13 @@ void Display::updateCore( int index, void *data )
 	if (index < 0 || index >= 9) return ;
 
 	t_core &c = _cores[index];
-	memmove(&c._destroyed, &static_cast<char*>(data)[8], CORE_PACKET_SIZE - 16);
-	memmove(&_gravity[index * 3], &static_cast<char*>(data)[8 + CORE_PACKET_SIZE - 16], 12); // position + mass
-	memmove(&_polarity[index], &static_cast<char*>(data)[8 + CORE_PACKET_SIZE - 4], 4); // just polarity
+	memmove(&c._destroyed, &static_cast<char*>(data)[8], CORE_PACKET_SIZE - 26);
+	memmove(&_gravity[index * 3], &static_cast<char*>(data)[8 + CORE_PACKET_SIZE - 26], 12); // position + mass
+	memmove(&_polarity[index], &static_cast<char*>(data)[8 + CORE_PACKET_SIZE - 14], 4); // just polarity
+	char name[11];
+	strncpy(name, &static_cast<char*>(data)[8 + CORE_PACKET_SIZE - 10],  10);
+	name[10] = '\0';
+	c._core_name = name;
 }
 
 void Display::updateCores( void *data )
@@ -263,9 +269,13 @@ void Display::updateCores( void *data )
 		if (index == _multi_id) continue ;
 
 		t_core &c = _cores[index];
-		memmove(&c._destroyed, &static_cast<char*>(data)[7 + CORE_PACKET_SIZE * index], CORE_PACKET_SIZE - 16);
-		memmove(&_gravity[index * 3], &static_cast<char*>(data)[7 + CORE_PACKET_SIZE * index + CORE_PACKET_SIZE - 16], 12); // position + mass
-		memmove(&_polarity[index], &static_cast<char*>(data)[7 + CORE_PACKET_SIZE * index + CORE_PACKET_SIZE - 4], 4); // just polarity
+		memmove(&c._destroyed, &static_cast<char*>(data)[7 + CORE_PACKET_SIZE * index], CORE_PACKET_SIZE - 26);
+		memmove(&_gravity[index * 3], &static_cast<char*>(data)[7 + CORE_PACKET_SIZE * index + CORE_PACKET_SIZE - 26], 12); // position + mass
+		memmove(&_polarity[index], &static_cast<char*>(data)[7 + CORE_PACKET_SIZE * index + CORE_PACKET_SIZE - 14], 4); // just polarity
+		char name[11];
+		strncpy(name, &static_cast<char*>(data)[7 + index * CORE_PACKET_SIZE + CORE_PACKET_SIZE - 10],  10);
+		name[10] = '\0';
+		c._core_name = name;
 		// std::cout << "core " << index << " destroyed " << _cores[index]._destroyed << " at pos " << _cores[index]._origin[0] << ", " << _cores[index]._origin[1] << std::endl;
 	}
 }
@@ -308,9 +318,10 @@ void Display::updateGameState( void )
 		char buffer[PACKET_SIZE_LIMIT];
 		strcpy(buffer, "Cores: ");
 		for (int index = 0; index < 9; ++index) {
-			memmove(&buffer[7 + index * CORE_PACKET_SIZE], &_cores[index]._destroyed, CORE_PACKET_SIZE - 16);
-			memmove(&buffer[7 + index * CORE_PACKET_SIZE + CORE_PACKET_SIZE - 16], &_gravity[index * 3], 12);
-			memmove(&buffer[7 + index * CORE_PACKET_SIZE + CORE_PACKET_SIZE - 4], &_polarity[index], 4);
+			memmove(&buffer[7 + index * CORE_PACKET_SIZE], &_cores[index]._destroyed, CORE_PACKET_SIZE - 26);
+			memmove(&buffer[7 + index * CORE_PACKET_SIZE + CORE_PACKET_SIZE - 26], &_gravity[index * 3], 12);
+			memmove(&buffer[7 + index * CORE_PACKET_SIZE + CORE_PACKET_SIZE - 14], &_polarity[index], 4);
+			strcpy(&buffer[7 + index * CORE_PACKET_SIZE + CORE_PACKET_SIZE - 10], _cores[index]._core_name.c_str());
 		}
 		_socket->Broadcast(buffer, 7 + 9 * CORE_PACKET_SIZE);
 	} else if (_multi_id == 'x') { // we ask to connect until we receive answer
@@ -322,10 +333,11 @@ void Display::updateGameState( void )
 	} else {
 		char buffer[PACKET_SIZE_LIMIT];
 		strcpy(buffer, (std::string("Core ") + static_cast<char>(_multi_id + '0') + ": ").c_str());
-		memmove(&buffer[8], &_cores[_multi_id]._destroyed, CORE_PACKET_SIZE - 16);
-		memmove(&buffer[8 + CORE_PACKET_SIZE - 16], &_gravity[_multi_id * 3], 12);
-		memmove(&buffer[8 + CORE_PACKET_SIZE - 4], &_polarity[_multi_id], 4);
-		if (!_socket->Send(_socket->GetServerAddress(), buffer, 8 + CORE_PACKET_SIZE)) {
+		memmove(&buffer[8], &_cores[_multi_id]._destroyed, CORE_PACKET_SIZE - 26);
+		memmove(&buffer[8 + CORE_PACKET_SIZE - 26], &_gravity[_multi_id * 3], 12);
+		memmove(&buffer[8 + CORE_PACKET_SIZE - 14], &_polarity[_multi_id], 4);
+		strcpy(&buffer[8 + CORE_PACKET_SIZE - 10], _cores[_multi_id]._core_name.c_str());
+		if (!_socket->Send(_socket->GetServerAddress(), buffer, 8 + CORE_PACKET_SIZE)) { // disconnection
 			closeSocket();
 		}
 	}
@@ -415,6 +427,7 @@ void Display::handleInputs( void )
 			_gui->addColor("death color", {&c._deathCol[0], &c._deathCol[1], &c._deathCol[2], &c._deathCol[3]});
 			_gui->addColor("speed color", {&c._speedCol[0], &c._speedCol[1], &c._speedCol[2], NULL});
 			_gui->addButton("RANDOMIZE", gui_randomize_callback, NULL, core_loc);
+			_gui->addInputText("name", &c._core_name, 10);
 			_gui->addBool("visible", &c._visible);
 			_gui->addBool("freeze", &c._freezed);
 			_gui->addButton("DESTROY", rm_core_callback, NULL, core_loc);
@@ -425,7 +438,7 @@ void Display::handleInputs( void )
 void Display::handleMultiInputs( void )
 {
 	if (!_gui->mouseControl() && _multi_id != 'x') {
-		if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+		if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !_cores[_multi_id]._destroyed) {
 			double mouseX, mouseY;
 			glfwGetCursorPos(_window, &mouseX, &mouseY);
 			_gravity[_multi_id * 3] = mouseX + _winPos[0];
@@ -476,6 +489,7 @@ void Display::handleMultiInputs( void )
 			_gui->addColor("death color", {&c._deathCol[0], &c._deathCol[1], &c._deathCol[2], &c._deathCol[3]});
 			_gui->addColor("speed color", {&c._speedCol[0], &c._speedCol[1], &c._speedCol[2], NULL});
 			_gui->addButton("RANDOMIZE", gui_randomize_callback, NULL, core_loc);
+			_gui->addInputText("name", &c._core_name, 10);
 			_gui->addBool("visible", &c._visible);
 			_gui->addButton("DESTROY", rm_core_callback, NULL, core_loc);
 		}
@@ -489,7 +503,7 @@ void Display::render( void )
 		++index;
 		if (c._destroyed) continue ;
 		if (c._visible) {
-			_gui->writeText(_gravity[index * 3] - _winPos[0] + 10, _gravity[index * 3 + 1] - _winPos[1], 12, RGBA::WHITE, "Core " + std::to_string(index + 1));
+			_gui->writeText(_gravity[index * 3] - _winPos[0] + 10, _gravity[index * 3 + 1] - _winPos[1], 12, RGBA::WHITE, c._core_name);
 		}
 
 		int num_part = static_cast<int>(c._born_parts);
